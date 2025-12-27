@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth/session";
 import { getBookingById, updateBookingPaymentIntent } from "@/lib/db/bookings";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { getService, formatPrice } from "@/lib/barberServices";
 
 export async function POST(request: Request) {
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
     // If already has a payment intent, return that
     if (booking.paymentIntentId) {
-      const existingIntent = await stripe.paymentIntents.retrieve(
+      const existingIntent = await getStripe().paymentIntents.retrieve(
         booking.paymentIntentId
       );
       return NextResponse.json({ clientSecret: existingIntent.client_secret });
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
     const service = getService(booking.serviceType);
 
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await getStripe().paymentIntents.create({
       amount: booking.amount,
       currency: "eur",
       metadata: {
