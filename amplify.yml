@@ -8,6 +8,7 @@ frontend:
         - npm ci
     build:
       commands:
+        - env | grep -E '^(APP_AWS|DDB_|STRIPE|NEXT_PUBLIC|OPS_|TWILIO|GOOGLE)' || true
         - npm run build
   artifacts:
     baseDirectory: .next
