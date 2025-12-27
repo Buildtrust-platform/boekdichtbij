@@ -2,7 +2,13 @@ import { DynamoDBClient, ScanCommand } from "@aws-sdk/client-dynamodb";
 import { NextResponse } from "next/server";
 
 const client = new DynamoDBClient({
-  region: process.env.AWS_REGION,
+  region: process.env.APP_AWS_REGION || process.env.AWS_REGION,
+  credentials: process.env.APP_AWS_ACCESS_KEY_ID
+    ? {
+        accessKeyId: process.env.APP_AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.APP_AWS_SECRET_ACCESS_KEY!,
+      }
+    : undefined,
 });
 
 export async function GET() {
