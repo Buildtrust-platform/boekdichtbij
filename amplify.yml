@@ -7,12 +7,9 @@ frontend:
         - nvm use 20
         - node --version
         - npm --version
-        - npm ci
+        - npm ci --legacy-peer-deps
     build:
       commands:
-        - echo "Environment variables:"
-        - env | grep -E '^(APP_AWS|DDB_|STRIPE|NEXT_PUBLIC|OPS_|TWILIO|GOOGLE)' || echo "No matching env vars found"
-        - export NODE_OPTIONS="--max-old-space-size=4096"
         - npm run build
   artifacts:
     baseDirectory: .next
@@ -20,5 +17,5 @@ frontend:
       - '**/*'
   cache:
     paths:
-      - node_modules/**/*
-      - .next/cache/**/*
+      - 'node_modules/**/*'
+      - '.next/cache/**/*'
