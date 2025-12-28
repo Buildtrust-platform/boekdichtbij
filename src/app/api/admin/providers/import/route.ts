@@ -10,11 +10,13 @@ import {
 
 const OPS_TOKEN = process.env.OPS_TOKEN;
 const VALID_AREAS = ["ridderkerk", "barendrecht", "rotterdam_zuid"];
+const VALID_GENDER_SERVICES = ["men", "women"];
 
 interface ImportInput {
   area: string;
   niche: string;
   limit?: number;
+  genderServices?: string[];
 }
 
 function validateInput(body: unknown): body is ImportInput {
@@ -23,6 +25,13 @@ function validateInput(body: unknown): body is ImportInput {
   if (typeof obj.area !== "string" || !VALID_AREAS.includes(obj.area)) return false;
   if (typeof obj.niche !== "string" || obj.niche.length === 0) return false;
   if (obj.limit !== undefined && (typeof obj.limit !== "number" || obj.limit < 1)) return false;
+  if (obj.genderServices !== undefined) {
+    if (!Array.isArray(obj.genderServices)) return false;
+    if (obj.genderServices.length === 0) return false;
+    for (const gs of obj.genderServices) {
+      if (typeof gs !== "string" || !VALID_GENDER_SERVICES.includes(gs)) return false;
+    }
+  }
   return true;
 }
 
@@ -64,7 +73,8 @@ async function createProvider(
   place: PlaceResult,
   area: string,
   whatsappPhone: string,
-  rawPhone: string | null
+  rawPhone: string | null,
+  genderServices: string[]
 ): Promise<void> {
   const providerId = generateProviderId(place.placeId);
   const now = new Date().toISOString();
@@ -91,6 +101,7 @@ async function createProvider(
         formattedAddress: place.formattedAddress,
         lat: place.lat,
         lng: place.lng,
+        genderServices,
         createdAt: now,
         updatedAt: now,
         GSI2PK: `AREA#${area}`,
@@ -133,7 +144,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
 
-  const { area, niche, limit = 20 } = body;
+  const { area, niche, limit = 20, genderServices = ["men"] } = body;
 
   try {
     const places = await searchPlaces(niche, area, limit);
@@ -142,7 +153,7 @@ export async function POST(request: Request) {
     let skippedExisting = 0;
     let skippedNoWhatsappPhone = 0;
     let skippedDuplicatePhone = 0;
-    const insertedProviders: { providerId: string; name: string; whatsappPhone: string }[] = [];
+    const insertedProviders: { providerId: string; name: string; whatsappPhone: string; genderServices: string[] }[] = [];
 
     for (const place of places) {
       const whatsappPhone = normalizePhone(place.phone);
@@ -164,18 +175,20 @@ export async function POST(request: Request) {
         continue;
       }
 
-      await createProvider(place, area, whatsappPhone, place.phone);
+      await createProvider(place, area, whatsappPhone, place.phone, genderServices);
       inserted++;
       insertedProviders.push({
         providerId: generateProviderId(place.placeId),
         name: place.name,
         whatsappPhone,
+        genderServices,
       });
     }
 
     return NextResponse.json({
       area,
       niche,
+      genderServices,
       summary: {
         inserted,
         skipped_existing: skippedExisting,

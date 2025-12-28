@@ -15,6 +15,7 @@ interface ProviderItem {
   isActive: boolean;
   hasWebsite: boolean;
   reliabilityScore: number;
+  genderServices: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -52,6 +53,8 @@ export async function GET(request: Request) {
         const isActive = item.isActive ?? true;
         const whatsappStatus = item.whatsappStatus ?? "UNKNOWN";
         const hasWebsite = item.hasWebsite ?? false;
+        // Backwards compatibility: treat missing genderServices as ["men"]
+        const genderServices: string[] = item.genderServices ?? ["men"];
 
         if (activeOnly && !isActive) continue;
         if (whatsappStatusFilter && whatsappStatus !== whatsappStatusFilter) continue;
@@ -70,6 +73,7 @@ export async function GET(request: Request) {
           isActive,
           hasWebsite,
           reliabilityScore: item.reliabilityScore ?? 0,
+          genderServices,
           createdAt: item.createdAt,
           updatedAt: item.updatedAt,
         });

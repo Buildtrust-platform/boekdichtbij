@@ -12,6 +12,7 @@ interface Booking {
   status: string;
   area: string;
   serviceName: string;
+  serviceType?: string;
   timeWindowLabel: string;
   place: string;
   payoutCents: number;
@@ -21,12 +22,35 @@ interface Booking {
 interface Provider {
   providerId: string;
   whatsappPhone: string;
+  whatsappStatus?: string;
   isActive: boolean;
+  genderServices?: string[];
 }
 
 function formatPayout(cents: number): string {
   const euros = cents / 100;
   return euros % 1 === 0 ? euros.toString() : euros.toFixed(2);
+}
+
+/**
+ * Determine required gender from booking serviceType.
+ * herenkapper => "men"
+ * dameskapper => "women"
+ * Default to "men" for backwards compatibility.
+ */
+function getRequiredGender(booking: Booking): "men" | "women" {
+  const serviceType = booking.serviceType?.toLowerCase() || "";
+  if (serviceType === "dameskapper") return "women";
+  return "men";
+}
+
+/**
+ * Check if provider serves the required gender.
+ * Backwards compatibility: if genderServices is missing, treat as ["men"].
+ */
+function providerServesGender(provider: Provider, requiredGender: "men" | "women"): boolean {
+  const genderServices = provider.genderServices ?? ["men"];
+  return genderServices.includes(requiredGender);
 }
 
 export interface DispatchResult {
@@ -35,6 +59,7 @@ export interface DispatchResult {
   providersNotified: number;
   skipped?: boolean;
   reason?: string;
+  requiredGender?: "men" | "women";
 }
 
 export async function dispatchWave1(bookingId: string): Promise<DispatchResult> {
@@ -59,6 +84,8 @@ export async function dispatchWave1(bookingId: string): Promise<DispatchResult> 
     return { dispatched: false, wave: 1, providersNotified: 0, skipped: true, reason: "already_dispatched" };
   }
 
+  const requiredGender = getRequiredGender(booking);
+
   const providerResult = await ddb.send(
     new QueryCommand({
       TableName: TABLE_NAME,
@@ -70,14 +97,19 @@ export async function dispatchWave1(bookingId: string): Promise<DispatchResult> 
         ":active": true,
       },
       ScanIndexForward: false,
-      Limit: 10,
+      Limit: 20, // Fetch more to filter by gender
     })
   );
 
-  const providers = (providerResult.Items || [])
-    .filter((p): p is Provider & Record<string, unknown> =>
-      typeof p.providerId === "string" && typeof p.whatsappPhone === "string"
-    )
+  // Filter providers by gender service and whatsapp validity
+  const eligibleProviders = (providerResult.Items || [])
+    .filter((p): p is Provider & Record<string, unknown> => {
+      if (typeof p.providerId !== "string" || typeof p.whatsappPhone !== "string") return false;
+      // Exclude providers with INVALID whatsapp status
+      if (p.whatsappStatus === "INVALID") return false;
+      // Check gender eligibility
+      return providerServesGender(p as Provider, requiredGender);
+    })
     .slice(0, 3);
 
   const now = new Date().toISOString();
@@ -85,7 +117,7 @@ export async function dispatchWave1(bookingId: string): Promise<DispatchResult> 
   const location = booking.place || booking.area;
   const payout = formatPayout(booking.payoutCents);
 
-  for (const provider of providers) {
+  for (const provider of eligibleProviders) {
     await sendWhatsAppWithButtons(provider.whatsappPhone, {
       bookingId,
       serviceName: booking.serviceName,
@@ -111,6 +143,7 @@ export async function dispatchWave1(bookingId: string): Promise<DispatchResult> 
     );
   }
 
+  // Write broadcast_sent event with gender metadata
   await ddb.send(
     new PutCommand({
       TableName: TABLE_NAME,
@@ -120,7 +153,12 @@ export async function dispatchWave1(bookingId: string): Promise<DispatchResult> 
         type: "EVENT",
         eventName: "broadcast_sent",
         at: now,
-        meta: { wave: 1, providerCount: providers.length },
+        meta: {
+          wave: 1,
+          providerCount: eligibleProviders.length,
+          requiredGender,
+          matchedProviders: eligibleProviders.length,
+        },
       },
     })
   );
@@ -142,6 +180,7 @@ export async function dispatchWave1(bookingId: string): Promise<DispatchResult> 
   return {
     dispatched: true,
     wave: 1,
-    providersNotified: providers.length,
+    providersNotified: eligibleProviders.length,
+    requiredGender,
   };
 }

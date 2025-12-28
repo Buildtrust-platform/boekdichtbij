@@ -3,11 +3,13 @@ import { searchPlaces, normalizePhone } from "@/lib/googlePlaces";
 
 const OPS_TOKEN = process.env.OPS_TOKEN;
 const VALID_AREAS = ["ridderkerk", "barendrecht", "rotterdam_zuid"];
+const VALID_GENDER_SERVICES = ["men", "women"];
 
 interface ImportPreviewInput {
   area: string;
   niche: string;
   limit?: number;
+  genderServices?: string[];
 }
 
 interface PreviewPlace {
@@ -20,6 +22,7 @@ interface PreviewPlace {
   hasWebsite: boolean;
   lat: number | null;
   lng: number | null;
+  genderServices: string[];
 }
 
 function validateInput(body: unknown): body is ImportPreviewInput {
@@ -28,6 +31,13 @@ function validateInput(body: unknown): body is ImportPreviewInput {
   if (typeof obj.area !== "string" || !VALID_AREAS.includes(obj.area)) return false;
   if (typeof obj.niche !== "string" || obj.niche.length === 0) return false;
   if (obj.limit !== undefined && (typeof obj.limit !== "number" || obj.limit < 1)) return false;
+  if (obj.genderServices !== undefined) {
+    if (!Array.isArray(obj.genderServices)) return false;
+    if (obj.genderServices.length === 0) return false;
+    for (const gs of obj.genderServices) {
+      if (typeof gs !== "string" || !VALID_GENDER_SERVICES.includes(gs)) return false;
+    }
+  }
   return true;
 }
 
@@ -48,7 +58,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
 
-  const { area, niche, limit = 20 } = body;
+  const { area, niche, limit = 20, genderServices = ["men"] } = body;
 
   try {
     const places = await searchPlaces(niche, area, limit);
@@ -63,11 +73,13 @@ export async function POST(request: Request) {
       hasWebsite: place.hasWebsite,
       lat: place.lat,
       lng: place.lng,
+      genderServices,
     }));
 
     return NextResponse.json({
       area,
       niche,
+      genderServices,
       count: previewPlaces.length,
       places: previewPlaces,
     });

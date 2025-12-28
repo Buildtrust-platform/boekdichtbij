@@ -2,8 +2,18 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { TIME_WINDOWS } from "@/lib/timeWindows";
 import { BARBER_SERVICES, formatPrice } from "@/lib/barberServices";
+import { Button, Card, Badge } from "@/components/ui";
+import { ProgressSteps } from "@/components/ui/ProgressSteps";
+
+const BOOKING_STEPS = [
+  { label: "Datum" },
+  { label: "Dienst" },
+  { label: "Bevestig" },
+  { label: "Betaal" },
+];
 
 function BookingConfirmContent() {
   const router = useRouter();
@@ -47,8 +57,11 @@ function BookingConfirmContent() {
 
   if (shouldRedirect || !date || !slot || !serviceId || !timeWindow || !service) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p>Laden...</p>
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-2 text-gray-500">
+          <LoadingSpinner />
+          <span>Laden...</span>
+        </div>
       </main>
     );
   }
@@ -97,78 +110,156 @@ function BookingConfirmContent() {
 
   if (isLoggedIn === null) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p>Laden...</p>
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-2 text-gray-500">
+          <LoadingSpinner />
+          <span>Laden...</span>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen px-4 py-8">
-      <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-bold mb-2">Bevestigen</h1>
-        <p className="text-gray-600 mb-6">Stap 3 van 4</p>
+    <main className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-lg mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-primary-500 rounded-lg flex items-center justify-center">
+                <ScissorsIcon className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-bold text-gray-900">BoekDichtbij</span>
+            </Link>
+            <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
+              Annuleren
+            </Link>
+          </div>
+          <ProgressSteps steps={BOOKING_STEPS} currentStep={3} />
+        </div>
+      </header>
 
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>
-        )}
-
-        <div className="border rounded-lg p-4 mb-6 space-y-4">
-          <div>
-            <div className="text-sm text-gray-500">Datum</div>
-            <div className="font-medium">{formattedDate}</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">Tijd</div>
-            <div className="font-medium">{timeWindow.label}</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">Dienst</div>
-            <div className="font-medium">{service.name}</div>
-            <div className="text-sm text-gray-500">{service.description}</div>
-          </div>
-          <hr />
-          <div className="flex justify-between">
-            <div className="font-medium">Totaal</div>
-            <div className="font-bold">{formatPrice(service.priceInCents)}</div>
-          </div>
+      {/* Content */}
+      <div className="max-w-lg mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Bevestig je afspraak
+          </h1>
+          <p className="text-gray-500">
+            Controleer de gegevens en ga door naar betaling
+          </p>
         </div>
 
-        {!isLoggedIn && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <p className="text-sm">
-              Je moet ingelogd zijn om te boeken.{" "}
-              <a
-                href={`/login?redirect=/boeken/bevestigen?date=${date}&slot=${slot}&service=${serviceId}`}
-                className="text-blue-600 hover:underline"
-              >
-                Inloggen
-              </a>{" "}
-              of{" "}
-              <a
-                href={`/register?redirect=/boeken/bevestigen?date=${date}&slot=${slot}&service=${serviceId}`}
-                className="text-blue-600 hover:underline"
-              >
-                registreren
-              </a>
-            </p>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-6 flex items-start gap-3">
+            <ErrorIcon className="w-5 h-5 shrink-0 mt-0.5" />
+            <span>{error}</span>
           </div>
         )}
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => router.back()}
-            className="flex-1 border border-gray-300 py-3 rounded hover:bg-gray-50"
-          >
-            Terug
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={loading || !isLoggedIn}
-            className="flex-1 bg-black text-white py-3 rounded hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Laden..." : "Bevestigen & Betalen"}
-          </button>
+        {!isLoggedIn && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <InfoIcon className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-amber-800 font-medium">
+                  Log in om door te gaan
+                </p>
+                <p className="text-sm text-amber-700 mt-1">
+                  Je moet ingelogd zijn om een afspraak te boeken.
+                </p>
+                <div className="flex gap-3 mt-3">
+                  <Link
+                    href={`/login?redirect=/boeken/bevestigen?date=${date}&slot=${slot}&service=${serviceId}`}
+                    className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    Inloggen
+                  </Link>
+                  <span className="text-amber-400">|</span>
+                  <Link
+                    href={`/register?redirect=/boeken/bevestigen?date=${date}&slot=${slot}&service=${serviceId}`}
+                    className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    Registreren
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Card className="mb-6">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Datum</p>
+                <p className="font-medium text-gray-900 capitalize">{formattedDate}</p>
+              </div>
+              <CalendarIcon className="w-5 h-5 text-gray-400" />
+            </div>
+
+            <hr className="border-gray-100" />
+
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Tijdvak</p>
+                <p className="font-medium text-gray-900">{timeWindow.label}</p>
+              </div>
+              <ClockIcon className="w-5 h-5 text-gray-400" />
+            </div>
+
+            <hr className="border-gray-100" />
+
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Dienst</p>
+                <p className="font-medium text-gray-900">{service.name}</p>
+                <p className="text-sm text-gray-500">{service.description}</p>
+              </div>
+              <Badge variant="primary">{service.durationMinutes} min</Badge>
+            </div>
+          </div>
+        </Card>
+
+        <Card variant="ghost" className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Totaal te betalen</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {formatPrice(service.priceInCents)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-400">Incl. BTW</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Footer */}
+        <div className="pt-6 border-t border-gray-200">
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => router.back()}
+              className="flex-1"
+            >
+              <ArrowLeftIcon className="w-5 h-5" />
+              Terug
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              isLoading={loading}
+              disabled={!isLoggedIn}
+              size="lg"
+              className="flex-1"
+            >
+              {loading ? "Laden..." : "Bevestigen & Betalen"}
+            </Button>
+          </div>
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Na betaling zoeken wij een beschikbare kapper voor je.
+          </p>
         </div>
       </div>
     </main>
@@ -177,8 +268,74 @@ function BookingConfirmContent() {
 
 export default function BookingConfirmPage() {
   return (
-    <Suspense fallback={<main className="min-h-screen flex items-center justify-center"><p>Laden...</p></main>}>
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-gray-500">
+            <LoadingSpinner />
+            <span>Laden...</span>
+          </div>
+        </main>
+      }
+    >
       <BookingConfirmContent />
     </Suspense>
+  );
+}
+
+function ScissorsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
+    </svg>
+  );
+}
+
+function CalendarIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+function ClockIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function ArrowLeftIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    </svg>
+  );
+}
+
+function ErrorIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function InfoIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function LoadingSpinner() {
+  return (
+    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
   );
 }

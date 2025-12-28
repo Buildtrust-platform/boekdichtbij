@@ -13,6 +13,7 @@ interface Provider {
   isActive: boolean;
   hasWebsite: boolean;
   reliabilityScore: number;
+  genderServices: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -20,6 +21,14 @@ interface Provider {
 const AREAS = ["", "ridderkerk", "barendrecht", "rotterdam_zuid"];
 const WA_STATUSES = ["", "UNKNOWN", "VALID", "INVALID"];
 const WEBSITE_OPTIONS = ["", "true", "false"];
+const SERVICES_OPTIONS = ["", "men", "women", "men,women"];
+
+function formatGenderServices(gs: string[]): string {
+  if (gs.includes("men") && gs.includes("women")) return "Heren, Dames";
+  if (gs.includes("men")) return "Heren";
+  if (gs.includes("women")) return "Dames";
+  return "-";
+}
 
 function ProvidersContent() {
   const searchParams = useSearchParams();
@@ -35,6 +44,12 @@ function ProvidersContent() {
   const [activeOnly, setActiveOnly] = useState(false);
   const [waStatusFilter, setWaStatusFilter] = useState("");
   const [hasWebsiteFilter, setHasWebsiteFilter] = useState("");
+  const [servicesFilter, setServicesFilter] = useState("");
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editMen, setEditMen] = useState(false);
+  const [editWomen, setEditWomen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const fetchProviders = useCallback(async () => {
     if (!token) return;
@@ -104,141 +119,286 @@ function ProvidersContent() {
     }
   };
 
+  const handleStartEdit = (provider: Provider) => {
+    setEditingId(provider.providerId);
+    setEditMen(provider.genderServices.includes("men"));
+    setEditWomen(provider.genderServices.includes("women"));
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditMen(false);
+    setEditWomen(false);
+  };
+
+  const handleSaveGenderServices = async (providerId: string) => {
+    if (!token) return;
+    if (!editMen && !editWomen) return;
+
+    setSaving(true);
+
+    try {
+      const genderServices: string[] = [];
+      if (editMen) genderServices.push("men");
+      if (editWomen) genderServices.push("women");
+
+      const res = await fetch(`/api/admin/providers/${providerId}/gender-services`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-ops-token": token,
+        },
+        body: JSON.stringify({ genderServices }),
+      });
+
+      if (res.ok) {
+        await fetchProviders();
+        handleCancelEdit();
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Client-side filter for services
+  const filteredProviders = providers.filter((p) => {
+    if (!servicesFilter) return true;
+    if (servicesFilter === "men") return p.genderServices.includes("men") && !p.genderServices.includes("women");
+    if (servicesFilter === "women") return p.genderServices.includes("women") && !p.genderServices.includes("men");
+    if (servicesFilter === "men,women") return p.genderServices.includes("men") && p.genderServices.includes("women");
+    return true;
+  });
+
   if (!token || error === "invalid_token") {
-    return <p style={{ padding: "2rem" }}>Niet beschikbaar.</p>;
+    return (
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Niet beschikbaar.</p>
+      </main>
+    );
   }
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
-      <h1 style={{ marginBottom: "1rem" }}>Providers</h1>
+    <main className="min-h-screen bg-gray-50 px-4 py-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-lg font-semibold text-gray-900 mb-4">Providers</h1>
 
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-        <div>
-          <label htmlFor="area" style={{ marginRight: "0.25rem" }}>Area:</label>
-          <select
-            id="area"
-            value={areaFilter}
-            onChange={(e) => setAreaFilter(e.target.value)}
-            style={{ padding: "0.25rem" }}
-          >
-            <option value="">All</option>
-            {AREAS.filter(Boolean).map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
+        <div className="bg-white border border-gray-200 rounded-lg p-3 mb-4">
+          <div className="flex flex-wrap gap-4 items-center text-sm">
+            <label className="flex items-center gap-1.5">
+              <span className="text-gray-500">Area</span>
+              <select
+                value={areaFilter}
+                onChange={(e) => setAreaFilter(e.target.value)}
+                className="border border-gray-200 rounded px-2 py-1 text-sm"
+              >
+                <option value="">Alle</option>
+                {AREAS.filter(Boolean).map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={activeOnly}
+                onChange={(e) => setActiveOnly(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-gray-600">Active only</span>
+            </label>
+
+            <label className="flex items-center gap-1.5">
+              <span className="text-gray-500">WA</span>
+              <select
+                value={waStatusFilter}
+                onChange={(e) => setWaStatusFilter(e.target.value)}
+                className="border border-gray-200 rounded px-2 py-1 text-sm"
+              >
+                <option value="">Alle</option>
+                {WA_STATUSES.filter(Boolean).map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex items-center gap-1.5">
+              <span className="text-gray-500">Website</span>
+              <select
+                value={hasWebsiteFilter}
+                onChange={(e) => setHasWebsiteFilter(e.target.value)}
+                className="border border-gray-200 rounded px-2 py-1 text-sm"
+              >
+                <option value="">Alle</option>
+                {WEBSITE_OPTIONS.filter(Boolean).map((w) => (
+                  <option key={w} value={w}>{w === "true" ? "Ja" : "Nee"}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex items-center gap-1.5">
+              <span className="text-gray-500">Services</span>
+              <select
+                value={servicesFilter}
+                onChange={(e) => setServicesFilter(e.target.value)}
+                className="border border-gray-200 rounded px-2 py-1 text-sm"
+              >
+                <option value="">Alle</option>
+                {SERVICES_OPTIONS.filter(Boolean).map((s) => (
+                  <option key={s} value={s}>
+                    {s === "men" ? "Heren" : s === "women" ? "Dames" : "Heren+Dames"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
-        <div>
-          <label htmlFor="active" style={{ marginRight: "0.25rem" }}>Active only:</label>
-          <input
-            id="active"
-            type="checkbox"
-            checked={activeOnly}
-            onChange={(e) => setActiveOnly(e.target.checked)}
-          />
-        </div>
+        {testError && <p className="text-red-600 text-sm mb-3">{testError}</p>}
 
-        <div>
-          <label htmlFor="waStatus" style={{ marginRight: "0.25rem" }}>WA status:</label>
-          <select
-            id="waStatus"
-            value={waStatusFilter}
-            onChange={(e) => setWaStatusFilter(e.target.value)}
-            style={{ padding: "0.25rem" }}
-          >
-            <option value="">All</option>
-            {WA_STATUSES.filter(Boolean).map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        </div>
+        {loading && <p className="text-gray-500 text-sm">Laden...</p>}
 
-        <div>
-          <label htmlFor="hasWebsite" style={{ marginRight: "0.25rem" }}>Website:</label>
-          <select
-            id="hasWebsite"
-            value={hasWebsiteFilter}
-            onChange={(e) => setHasWebsiteFilter(e.target.value)}
-            style={{ padding: "0.25rem" }}
-          >
-            <option value="">All</option>
-            {WEBSITE_OPTIONS.filter(Boolean).map((w) => (
-              <option key={w} value={w}>{w === "true" ? "Yes" : "No"}</option>
-            ))}
-          </select>
-        </div>
+        {error === "fetch_failed" && (
+          <p className="text-red-600 text-sm">Probeer opnieuw.</p>
+        )}
+
+        {!loading && !error && (
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200 text-left text-gray-600">
+                  <th className="px-3 py-2 font-medium">Naam</th>
+                  <th className="px-3 py-2 font-medium">Area</th>
+                  <th className="px-3 py-2 font-medium">WhatsApp</th>
+                  <th className="px-3 py-2 font-medium">WA Status</th>
+                  <th className="px-3 py-2 font-medium text-center">Active</th>
+                  <th className="px-3 py-2 font-medium text-center">Website</th>
+                  <th className="px-3 py-2 font-medium">Services</th>
+                  <th className="px-3 py-2 font-medium text-center">Score</th>
+                  <th className="px-3 py-2 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProviders.map((p) => (
+                  <tr key={p.providerId} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-3 py-2">{p.name}</td>
+                    <td className="px-3 py-2 text-gray-500">{p.area}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-gray-600">{p.whatsappPhone}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`text-xs px-1.5 py-0.5 rounded ${
+                          p.whatsappStatus === "VALID"
+                            ? "bg-green-100 text-green-700"
+                            : p.whatsappStatus === "INVALID"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {p.whatsappStatus || "UNKNOWN"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {p.isActive ? (
+                        <span className="text-green-600">Ja</span>
+                      ) : (
+                        <span className="text-gray-400">Nee</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {p.hasWebsite ? (
+                        <span className="text-gray-700">Ja</span>
+                      ) : (
+                        <span className="text-gray-400">Nee</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {editingId === p.providerId ? (
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={editMen}
+                              onChange={(e) => setEditMen(e.target.checked)}
+                              className="rounded"
+                            />
+                            <span className="text-xs">Heren</span>
+                          </label>
+                          <label className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={editWomen}
+                              onChange={(e) => setEditWomen(e.target.checked)}
+                              className="rounded"
+                            />
+                            <span className="text-xs">Dames</span>
+                          </label>
+                          <button
+                            onClick={() => handleSaveGenderServices(p.providerId)}
+                            disabled={saving || (!editMen && !editWomen)}
+                            className="text-xs px-2 py-0.5 bg-gray-900 text-white rounded disabled:opacity-50"
+                          >
+                            {saving ? "..." : "Opslaan"}
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="text-xs px-2 py-0.5 border border-gray-200 rounded hover:bg-gray-50"
+                          >
+                            Annuleer
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-700">{formatGenderServices(p.genderServices)}</span>
+                          <button
+                            onClick={() => handleStartEdit(p)}
+                            className="text-xs px-1.5 py-0.5 border border-gray-200 rounded hover:bg-gray-50"
+                          >
+                            Wijzig
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center font-mono text-gray-600">
+                      {p.reliabilityScore}
+                    </td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => handleTestWhatsApp(p.providerId)}
+                        disabled={testingId === p.providerId}
+                        className="text-xs px-2 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        {testingId === p.providerId ? "..." : "Test"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {filteredProviders.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="px-3 py-6 text-center text-gray-500">
+                      Geen resultaten.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-
-      {testError && <p style={{ color: "red", marginBottom: "0.5rem" }}>{testError}</p>}
-
-      {loading && <p>Laden...</p>}
-
-      {error === "fetch_failed" && <p style={{ color: "red" }}>Probeer opnieuw.</p>}
-
-      {!loading && !error && (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: "0.875rem",
-          }}
-        >
-          <thead>
-            <tr style={{ borderBottom: "2px solid #333", textAlign: "left" }}>
-              <th style={{ padding: "0.5rem" }}>Name</th>
-              <th style={{ padding: "0.5rem" }}>Area</th>
-              <th style={{ padding: "0.5rem" }}>Adres</th>
-              <th style={{ padding: "0.5rem" }}>WhatsApp</th>
-              <th style={{ padding: "0.5rem" }}>WA status</th>
-              <th style={{ padding: "0.5rem" }}>Active</th>
-              <th style={{ padding: "0.5rem" }}>Website</th>
-              <th style={{ padding: "0.5rem" }}>Score</th>
-              <th style={{ padding: "0.5rem" }}>Test</th>
-            </tr>
-          </thead>
-          <tbody>
-            {providers.map((p) => (
-              <tr key={p.providerId} style={{ borderBottom: "1px solid #ddd" }}>
-                <td style={{ padding: "0.5rem" }}>{p.name}</td>
-                <td style={{ padding: "0.5rem" }}>{p.area}</td>
-                <td style={{ padding: "0.5rem" }}>{p.formattedAddress || "-"}</td>
-                <td style={{ padding: "0.5rem" }}>{p.whatsappPhone}</td>
-                <td style={{ padding: "0.5rem" }}>{p.whatsappStatus || "UNKNOWN"}</td>
-                <td style={{ padding: "0.5rem" }}>{p.isActive ? "Yes" : "No"}</td>
-                <td style={{ padding: "0.5rem" }}>{p.hasWebsite ? "Yes" : "No"}</td>
-                <td style={{ padding: "0.5rem" }}>{p.reliabilityScore}</td>
-                <td style={{ padding: "0.5rem" }}>
-                  <button
-                    onClick={() => handleTestWhatsApp(p.providerId)}
-                    disabled={testingId === p.providerId}
-                    style={{
-                      padding: "0.25rem 0.5rem",
-                      cursor: testingId === p.providerId ? "not-allowed" : "pointer",
-                      opacity: testingId === p.providerId ? 0.5 : 1,
-                    }}
-                  >
-                    {testingId === p.providerId ? "..." : "Test WhatsApp"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {providers.length === 0 && (
-              <tr>
-                <td colSpan={9} style={{ padding: "1rem", textAlign: "center" }}>
-                  Geen resultaten.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      )}
-    </div>
+    </main>
   );
 }
 
 export default function ProvidersPage() {
   return (
-    <Suspense fallback={<p style={{ padding: "2rem" }}>Laden...</p>}>
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <p className="text-gray-500">Laden...</p>
+        </main>
+      }
+    >
       <ProvidersContent />
     </Suspense>
   );

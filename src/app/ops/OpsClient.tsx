@@ -123,82 +123,109 @@ export default function OpsClient() {
   }
 
   return (
-    <main className="min-h-screen px-4 py-8">
-      <div className="max-w-md mx-auto">
-        <h1 className="text-xl font-semibold mb-6">Ops</h1>
+    <main className="min-h-screen bg-gray-50 px-4 py-6">
+      <div className="max-w-xl mx-auto">
+        <h1 className="text-lg font-semibold text-gray-900 mb-4">Ops</h1>
 
-        <div className="mb-4">
-          <label className="block text-sm mb-2">Booking ID</label>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+          <label className="block text-sm text-gray-600 mb-1">Booking ID</label>
           <input
             type="text"
             value={bookingId}
             onChange={(e) => setBookingId(e.target.value)}
-            className="w-full border rounded px-3 py-2 font-mono text-sm"
+            className="w-full border border-gray-200 rounded px-3 py-2 font-mono text-sm focus:outline-none focus:border-gray-400"
             placeholder="01KDFN..."
           />
         </div>
 
-        <div className="space-y-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-4">
           <button
             onClick={fetchStatus}
             disabled={loading}
-            className="w-full border rounded py-2 hover:bg-gray-50 disabled:opacity-50"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
           >
-            Status ophalen
+            Status
           </button>
           <button
             onClick={callAssignable}
             disabled={loading}
-            className="w-full border rounded py-2 hover:bg-gray-50 disabled:opacity-50"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
           >
-            Markeer als betaalde boeking
+            Betaald
           </button>
           <button
             onClick={callDispatch}
             disabled={loading}
-            className="w-full border rounded py-2 hover:bg-gray-50 disabled:opacity-50"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
           >
-            Verstuur naar providers
+            Dispatch
           </button>
           <button
             onClick={callExpire}
             disabled={loading}
-            className="w-full border rounded py-2 hover:bg-gray-50 disabled:opacity-50"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
           >
-            Forceer verlopen
+            Expire
           </button>
         </div>
 
-        {error && <p className="text-red-600 text-sm mb-4">Probeer opnieuw.</p>}
-        {message && <p className="text-gray-600 text-sm mb-4">{message}</p>}
+        {error && <p className="text-red-600 text-sm mb-3">Fout opgetreden</p>}
+        {message && <p className="text-gray-600 text-sm mb-3">{message}</p>}
 
         {booking && (
-          <div className="border rounded p-4 text-sm space-y-1">
-            <p><span className="text-gray-500">status:</span> {booking.status}</p>
-            {booking.serviceName && (
-              <p><span className="text-gray-500">serviceName:</span> {booking.serviceName}</p>
-            )}
-            {booking.timeWindowLabel && (
-              <p><span className="text-gray-500">timeWindowLabel:</span> {booking.timeWindowLabel}</p>
-            )}
-            {(booking.address || booking.postcode || booking.place) && (
-              <p>
-                <span className="text-gray-500">adres:</span>{" "}
-                {[booking.address, booking.postcode, booking.place].filter(Boolean).join(", ")}
-              </p>
-            )}
-            {booking.assignedProviderId && (
-              <p><span className="text-gray-500">assignedProviderId:</span> {booking.assignedProviderId}</p>
-            )}
-            {booking.dispatchStartedAt && (
-              <p><span className="text-gray-500">dispatchStartedAt:</span> {booking.dispatchStartedAt}</p>
-            )}
-            {booking.assignmentDeadline && (
-              <p><span className="text-gray-500">assignmentDeadline:</span> {booking.assignmentDeadline}</p>
-            )}
-            {booking.acceptedAt && (
-              <p><span className="text-gray-500">acceptedAt:</span> {booking.acceptedAt}</p>
-            )}
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <tbody>
+                <tr className="border-b border-gray-100">
+                  <td className="px-3 py-2 text-gray-500 w-40">status</td>
+                  <td className="px-3 py-2 font-medium">{booking.status}</td>
+                </tr>
+                {booking.serviceName && (
+                  <tr className="border-b border-gray-100">
+                    <td className="px-3 py-2 text-gray-500">serviceName</td>
+                    <td className="px-3 py-2">{booking.serviceName}</td>
+                  </tr>
+                )}
+                {booking.timeWindowLabel && (
+                  <tr className="border-b border-gray-100">
+                    <td className="px-3 py-2 text-gray-500">timeWindowLabel</td>
+                    <td className="px-3 py-2">{booking.timeWindowLabel}</td>
+                  </tr>
+                )}
+                {(booking.address || booking.postcode || booking.place) && (
+                  <tr className="border-b border-gray-100">
+                    <td className="px-3 py-2 text-gray-500">adres</td>
+                    <td className="px-3 py-2">
+                      {[booking.address, booking.postcode, booking.place].filter(Boolean).join(", ")}
+                    </td>
+                  </tr>
+                )}
+                {booking.assignedProviderId && (
+                  <tr className="border-b border-gray-100">
+                    <td className="px-3 py-2 text-gray-500">assignedProviderId</td>
+                    <td className="px-3 py-2 font-mono text-xs">{booking.assignedProviderId}</td>
+                  </tr>
+                )}
+                {booking.dispatchStartedAt && (
+                  <tr className="border-b border-gray-100">
+                    <td className="px-3 py-2 text-gray-500">dispatchStartedAt</td>
+                    <td className="px-3 py-2 font-mono text-xs">{booking.dispatchStartedAt}</td>
+                  </tr>
+                )}
+                {booking.assignmentDeadline && (
+                  <tr className="border-b border-gray-100">
+                    <td className="px-3 py-2 text-gray-500">assignmentDeadline</td>
+                    <td className="px-3 py-2 font-mono text-xs">{booking.assignmentDeadline}</td>
+                  </tr>
+                )}
+                {booking.acceptedAt && (
+                  <tr>
+                    <td className="px-3 py-2 text-gray-500">acceptedAt</td>
+                    <td className="px-3 py-2 font-mono text-xs">{booking.acceptedAt}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
