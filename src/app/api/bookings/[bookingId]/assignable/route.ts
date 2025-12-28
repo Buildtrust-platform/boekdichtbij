@@ -1,3 +1,4 @@
+// TEMP: remove after Stripe rollout
 import { NextResponse } from "next/server";
 import { GetCommand, UpdateCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
@@ -7,10 +8,14 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ bookingId: string }> }
 ) {
+  const opsToken = request.headers.get("x-ops-token");
+  if (!opsToken || opsToken !== process.env.OPS_TOKEN) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
   const { bookingId } = await params;
   const now = new Date().toISOString();
 
-  // Get booking to retrieve area and createdAt
   const getResult = await ddb.send(
     new GetCommand({
       TableName: TABLE_NAME,

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { UpdateCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, UpdateCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { ddb, TABLE_NAME } from "@/lib/ddb";
 import { getStripe } from "@/lib/stripe";
-import { dispatchWave1 } from "@/lib/dispatch";
+import { dispatchWave1 } from "@/lib/dispatchWave1";
 import type Stripe from "stripe";
 
 export async function POST(request: Request) {
@@ -45,25 +46,52 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
-    await markBookingPaid(bookingId, event.type);
+    await processPaymentConfirmation(bookingId, event.type);
   }
 
   if (event.type === "payment_intent.succeeded") {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
     const bookingId = paymentIntent.metadata?.bookingId;
 
-    if (bookingId) {
-      await markBookingPaid(bookingId, event.type);
+    if (!bookingId) {
+      console.log("[Stripe Webhook] No bookingId in payment_intent metadata, skipping");
+      return NextResponse.json({ received: true });
     }
+
+    await processPaymentConfirmation(bookingId, event.type);
   }
 
   return NextResponse.json({ received: true });
 }
 
-async function markBookingPaid(bookingId: string, eventType: string): Promise<void> {
+async function processPaymentConfirmation(bookingId: string, eventType: string): Promise<void> {
   const now = new Date().toISOString();
 
+  // Get booking to retrieve area and createdAt for GSI update
+  const getResult = await ddb.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: `BOOKING#${bookingId}`, SK: "BOOKING" },
+      ProjectionExpression: "area, createdAt, #status",
+      ExpressionAttributeNames: { "#status": "status" },
+    })
+  );
+
+  if (!getResult.Item) {
+    console.log(`[Stripe Webhook] Booking ${bookingId} not found`);
+    return;
+  }
+
+  const { area, createdAt, status } = getResult.Item;
+
+  // Already processed - idempotent return
+  if (status !== "PENDING_PAYMENT") {
+    console.log(`[Stripe Webhook] Booking ${bookingId} already processed (status: ${status})`);
+    return;
+  }
+
   try {
+    // Conditional update: only transition if status == PENDING_PAYMENT
     await ddb.send(
       new UpdateCommand({
         TableName: TABLE_NAME,
@@ -79,14 +107,15 @@ async function markBookingPaid(bookingId: string, eventType: string): Promise<vo
           ":pendingPayment": "PENDING_PAYMENT",
           ":paid": "PAID",
           ":now": now,
-          ":gsi1pk": `AREA#${await getBookingArea(bookingId)}#STATUS#PENDING_ASSIGNMENT`,
-          ":gsi1sk": `BOOKING#${bookingId}`,
+          ":gsi1pk": `AREA#${area || "ridderkerk"}#STATUS#PENDING_ASSIGNMENT`,
+          ":gsi1sk": `CREATED#${createdAt}#BOOKING#${bookingId}`,
         },
       })
     );
 
-    console.log(`[Stripe Webhook] Booking ${bookingId} marked as paid`);
+    console.log(`[Stripe Webhook] Booking ${bookingId} transitioned to PENDING_ASSIGNMENT`);
 
+    // Write payment_confirmed event only after successful transition
     await ddb.send(
       new PutCommand({
         TableName: TABLE_NAME,
@@ -101,26 +130,15 @@ async function markBookingPaid(bookingId: string, eventType: string): Promise<vo
       })
     );
 
+    // Dispatch Wave 1 - function handles its own idempotency via conditional update
     const dispatchResult = await dispatchWave1(bookingId);
     console.log(`[Stripe Webhook] Dispatch result for ${bookingId}:`, dispatchResult);
-  } catch (err) {
-    if ((err as Error).name === "ConditionalCheckFailedException") {
-      console.log(`[Stripe Webhook] Booking ${bookingId} already processed (idempotent)`);
+  } catch (error) {
+    if (error instanceof ConditionalCheckFailedException) {
+      console.log(`[Stripe Webhook] Booking ${bookingId} already processed (conditional check failed)`);
       return;
     }
-    console.error(`[Stripe Webhook] Error processing ${bookingId}:`, err);
-    throw err;
+    console.error(`[Stripe Webhook] Error processing ${bookingId}:`, error);
+    throw error;
   }
-}
-
-async function getBookingArea(bookingId: string): Promise<string> {
-  const { GetCommand } = await import("@aws-sdk/lib-dynamodb");
-  const result = await ddb.send(
-    new GetCommand({
-      TableName: TABLE_NAME,
-      Key: { PK: `BOOKING#${bookingId}`, SK: "BOOKING" },
-      ProjectionExpression: "area",
-    })
-  );
-  return result.Item?.area || "ridderkerk";
 }
