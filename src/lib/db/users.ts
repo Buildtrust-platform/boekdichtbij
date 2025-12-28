@@ -93,3 +93,39 @@ export async function emailExists(email: string): Promise<boolean> {
   const user = await getUserByEmail(email);
   return user !== null;
 }
+
+export async function createOAuthUser(
+  email: string,
+  name: string,
+  provider: string,
+  providerAccountId: string
+): Promise<User> {
+  const userId = ulid();
+  const now = new Date().toISOString();
+
+  const user: User = {
+    userId,
+    email,
+    name,
+    createdAt: now,
+  };
+
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `USER#${userId}`,
+        SK: "PROFILE",
+        GSI1PK: `EMAIL#${email.toLowerCase()}`,
+        GSI1SK: "USER",
+        entityType: "USER",
+        ...user,
+        authProvider: provider,
+        providerAccountId,
+      },
+      ConditionExpression: "attribute_not_exists(PK)",
+    })
+  );
+
+  return user;
+}

@@ -15,6 +15,22 @@ function BookingConfirmContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+
+  const timeWindow = slot ? TIME_WINDOWS.find((tw) => tw.id === slot) : null;
+  const service = serviceId ? BARBER_SERVICES[serviceId] : null;
+
+  useEffect(() => {
+    if (!date || !slot || !serviceId || !timeWindow || !service) {
+      setShouldRedirect(true);
+    }
+  }, [date, slot, serviceId, timeWindow, service]);
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      router.push("/boeken");
+    }
+  }, [shouldRedirect, router]);
 
   useEffect(() => {
     async function checkAuth() {
@@ -29,17 +45,12 @@ function BookingConfirmContent() {
     checkAuth();
   }, []);
 
-  if (!date || !slot || !serviceId) {
-    router.push("/boeken");
-    return null;
-  }
-
-  const timeWindow = TIME_WINDOWS.find((tw) => tw.id === slot);
-  const service = BARBER_SERVICES[serviceId];
-
-  if (!timeWindow || !service) {
-    router.push("/boeken");
-    return null;
+  if (shouldRedirect || !date || !slot || !serviceId || !timeWindow || !service) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p>Laden...</p>
+      </main>
+    );
   }
 
   const dateObj = new Date(date);
@@ -55,7 +66,7 @@ function BookingConfirmContent() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/bookings", {
+      const res = await fetch("/api/boeken", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

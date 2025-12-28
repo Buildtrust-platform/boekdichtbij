@@ -17,7 +17,9 @@ export interface User {
   email: string;
   name: string;
   phone?: string;
-  passwordHash: string;
+  passwordHash?: string;
+  authProvider?: string;
+  providerAccountId?: string;
   createdAt: string;
 }
 

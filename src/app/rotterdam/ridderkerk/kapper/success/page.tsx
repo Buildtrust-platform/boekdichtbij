@@ -14,7 +14,7 @@ interface BookingData {
   place: string;
 }
 
-type PageState = "loading" | "pending" | "assigned" | "unfilled" | "not_found" | "error";
+type PageState = "loading" | "pending" | "assigned" | "unfilled" | "cancelled" | "not_found" | "error";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -73,6 +73,15 @@ function SuccessContent() {
 
         if (data.status === "UNFILLED") {
           setState("unfilled");
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          return;
+        }
+
+        if (data.status === "CANCELLED") {
+          setState("cancelled");
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
@@ -194,6 +203,25 @@ function SuccessContent() {
               Ontvang terugbetaling
             </button>
           </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (state === "cancelled") {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md w-full">
+          <h1 className="text-xl font-semibold mb-4">Boeking verlopen</h1>
+          <p className="text-gray-600 mb-6">
+            De boeking is niet bevestigd.
+          </p>
+          <Link
+            href="/rotterdam/ridderkerk/kapper"
+            className="block w-full text-center border border-gray-300 py-3 rounded hover:bg-gray-50"
+          >
+            Probeer opnieuw
+          </Link>
         </div>
       </main>
     );

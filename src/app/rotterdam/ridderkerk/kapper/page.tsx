@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 const SERVICES = [
   { key: "haircut", name: "Knipbeurt", durationMin: 30, priceCents: 2500, payoutCents: 2000 },
@@ -16,8 +15,6 @@ const TIME_WINDOWS = [
 ];
 
 export default function KapperRidderkerkPage() {
-  const router = useRouter();
-
   const [serviceKey, setServiceKey] = useState("");
   const [timeWindowIndex, setTimeWindowIndex] = useState<number | null>(null);
   const [date, setDate] = useState("");
@@ -62,7 +59,7 @@ export default function KapperRidderkerkPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/bookings", {
+      const bookingRes = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -84,14 +81,35 @@ export default function KapperRidderkerkPage() {
         }),
       });
 
-      if (!res.ok) {
+      if (!bookingRes.ok) {
         setError(true);
         setLoading(false);
         return;
       }
 
-      const data = await res.json();
-      router.push(`/rotterdam/ridderkerk/kapper/success?bookingId=${data.bookingId}`);
+      const bookingData = await bookingRes.json();
+      const { bookingId } = bookingData;
+
+      const checkoutRes = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
+      });
+
+      if (!checkoutRes.ok) {
+        setError(true);
+        setLoading(false);
+        return;
+      }
+
+      const checkoutData = await checkoutRes.json();
+
+      if (checkoutData.url) {
+        window.location.href = checkoutData.url;
+      } else {
+        setError(true);
+        setLoading(false);
+      }
     } catch {
       setError(true);
       setLoading(false);

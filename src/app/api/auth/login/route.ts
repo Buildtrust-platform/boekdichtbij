@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     const user = await getUserByEmail(email);
-    if (!user) {
+    if (!user || !user.passwordHash) {
       return NextResponse.json(
         { error: "Ongeldige inloggegevens" },
         { status: 401 }

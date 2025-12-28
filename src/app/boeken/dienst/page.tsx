@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BARBER_SERVICES, formatPrice } from "@/lib/barberServices";
 
@@ -11,12 +11,21 @@ function BookingServiceContent() {
   const slot = searchParams.get("slot");
   const [selectedService, setSelectedService] = useState("");
 
-  if (!date || !slot) {
-    router.push("/boeken");
-    return null;
-  }
-
   const services = Object.values(BARBER_SERVICES).filter((s) => s.enabled);
+
+  useEffect(() => {
+    if (!date || !slot) {
+      router.push("/boeken");
+    }
+  }, [date, slot, router]);
+
+  if (!date || !slot) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p>Laden...</p>
+      </main>
+    );
+  }
 
   function handleContinue() {
     if (selectedService) {

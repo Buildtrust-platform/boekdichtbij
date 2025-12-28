@@ -3,8 +3,10 @@ import { headers } from "next/headers";
 import { getStripe } from "@/lib/stripe";
 import {
   getBookingByPaymentIntent,
+  getBookingById,
   updateBookingStatus,
 } from "@/lib/db/bookings";
+import { dispatchBookingToProviders } from "@/lib/db/dispatch";
 import type Stripe from "stripe";
 
 export async function POST(request: Request) {
@@ -44,9 +46,18 @@ export async function POST(request: Request) {
         if (booking) {
           // Update status: pending -> paid -> dispatched
           await updateBookingStatus(booking.bookingId, "paid");
-          // Immediately dispatch for assignment
           await updateBookingStatus(booking.bookingId, "dispatched");
-          console.log(`Booking ${booking.bookingId} paid and dispatched`);
+          console.log(`Booking ${booking.bookingId} marked as paid and dispatched`);
+
+          // Fetch full booking to dispatch to providers
+          const fullBooking = await getBookingById(booking.bookingId);
+          if (fullBooking) {
+            const result = await dispatchBookingToProviders(fullBooking);
+            console.log(
+              `Booking ${booking.bookingId} dispatch result:`,
+              result
+            );
+          }
         }
         break;
       }

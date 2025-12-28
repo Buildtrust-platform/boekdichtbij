@@ -21,7 +21,7 @@ export const BARBER_SERVICES: Record<string, BarberService> = {
     enabled: true,
   },
   beardTrim: {
-    id: "beard-trim",
+    id: "beardTrim",
     name: "Baard trimmen",
     description: "Baard bijwerken en vormgeven",
     priceInCents: 1500, // EUR 15.00
@@ -29,7 +29,7 @@ export const BARBER_SERVICES: Record<string, BarberService> = {
     enabled: true,
   },
   haircutAndBeard: {
-    id: "haircut-beard",
+    id: "haircutAndBeard",
     name: "Knipbeurt + Baard",
     description: "Compleet verzorgingspakket",
     priceInCents: 3500, // EUR 35.00
