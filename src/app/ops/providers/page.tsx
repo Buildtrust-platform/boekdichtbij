@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 
 interface Provider {
@@ -21,7 +21,7 @@ const AREAS = ["", "ridderkerk", "barendrecht", "rotterdam_zuid"];
 const WA_STATUSES = ["", "UNKNOWN", "VALID", "INVALID"];
 const WEBSITE_OPTIONS = ["", "true", "false"];
 
-export default function ProvidersPage() {
+function ProvidersContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -233,5 +233,13 @@ export default function ProvidersPage() {
         </table>
       )}
     </div>
+  );
+}
+
+export default function ProvidersPage() {
+  return (
+    <Suspense fallback={<p style={{ padding: "2rem" }}>Laden...</p>}>
+      <ProvidersContent />
+    </Suspense>
   );
 }
