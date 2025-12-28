@@ -60,7 +60,12 @@ function padScore(score: number): string {
   return score.toString().padStart(4, "0");
 }
 
-async function createProvider(place: PlaceResult, area: string, phone: string): Promise<void> {
+async function createProvider(
+  place: PlaceResult,
+  area: string,
+  whatsappPhone: string,
+  rawPhone: string | null
+): Promise<void> {
   const providerId = generateProviderId(place.placeId);
   const now = new Date().toISOString();
   const reliabilityScore = 0;
@@ -74,7 +79,9 @@ async function createProvider(place: PlaceResult, area: string, phone: string): 
         type: "PROVIDER",
         providerId,
         name: place.name,
-        whatsappPhone: phone,
+        rawPhone,
+        whatsappPhone,
+        whatsappStatus: "UNKNOWN",
         area,
         isActive: true,
         reliabilityScore,
@@ -82,6 +89,8 @@ async function createProvider(place: PlaceResult, area: string, phone: string): 
         website: place.website,
         placeId: place.placeId,
         formattedAddress: place.formattedAddress,
+        lat: place.lat,
+        lng: place.lng,
         createdAt: now,
         updatedAt: now,
         GSI2PK: `AREA#${area}`,
@@ -96,11 +105,11 @@ async function createProvider(place: PlaceResult, area: string, phone: string): 
     new PutCommand({
       TableName: TABLE_NAME,
       Item: {
-        PK: `PHONE#${phone}`,
+        PK: `PHONE#${whatsappPhone}`,
         SK: `PROVIDER#${providerId}`,
         type: "PHONE_INDEX",
         providerId,
-        GSI3PK: `PHONE#${phone}`,
+        GSI3PK: `PHONE#${whatsappPhone}`,
         GSI3SK: `PROVIDER#${providerId}`,
       },
     })
@@ -131,15 +140,15 @@ export async function POST(request: Request) {
 
     let inserted = 0;
     let skippedExisting = 0;
-    let skippedNoPhone = 0;
+    let skippedNoWhatsappPhone = 0;
     let skippedDuplicatePhone = 0;
-    const insertedProviders: { providerId: string; name: string; phone: string }[] = [];
+    const insertedProviders: { providerId: string; name: string; whatsappPhone: string }[] = [];
 
     for (const place of places) {
-      const phone = normalizePhone(place.phone);
+      const whatsappPhone = normalizePhone(place.phone);
 
-      if (!phone) {
-        skippedNoPhone++;
+      if (!whatsappPhone) {
+        skippedNoWhatsappPhone++;
         continue;
       }
 
@@ -149,18 +158,18 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const phoneDupe = await phoneExists(phone);
+      const phoneDupe = await phoneExists(whatsappPhone);
       if (phoneDupe) {
         skippedDuplicatePhone++;
         continue;
       }
 
-      await createProvider(place, area, phone);
+      await createProvider(place, area, whatsappPhone, place.phone);
       inserted++;
       insertedProviders.push({
         providerId: generateProviderId(place.placeId),
         name: place.name,
-        phone,
+        whatsappPhone,
       });
     }
 
@@ -170,7 +179,7 @@ export async function POST(request: Request) {
       summary: {
         inserted,
         skipped_existing: skippedExisting,
-        skipped_no_phone: skippedNoPhone,
+        skipped_no_whatsapp_phone: skippedNoWhatsappPhone,
         skipped_duplicate_phone: skippedDuplicatePhone,
       },
       insertedProviders,

@@ -1,0 +1,35 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:Query"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:*:*:table/boekdichtbij_main",
+        "arn:aws:dynamodb:*:*:table/boekdichtbij_main/index/GSI1",
+        "arn:aws:dynamodb:*:*:table/boekdichtbij_main/index/GSI2"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:UpdateItem",
+        "dynamodb:PutItem"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:*:*:table/boekdichtbij_main"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:*:*:*"
+    }
+  ]
+}

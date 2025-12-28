@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchPlaces } from "@/lib/googlePlaces";
+import { searchPlaces, normalizePhone } from "@/lib/googlePlaces";
 
 const OPS_TOKEN = process.env.OPS_TOKEN;
 const VALID_AREAS = ["ridderkerk", "barendrecht", "rotterdam_zuid"];
@@ -8,6 +8,18 @@ interface ImportPreviewInput {
   area: string;
   niche: string;
   limit?: number;
+}
+
+interface PreviewPlace {
+  placeId: string;
+  name: string;
+  formattedAddress: string;
+  phoneRaw: string | null;
+  phoneE164: string | null;
+  website: string | null;
+  hasWebsite: boolean;
+  lat: number | null;
+  lng: number | null;
 }
 
 function validateInput(body: unknown): body is ImportPreviewInput {
@@ -41,11 +53,23 @@ export async function POST(request: Request) {
   try {
     const places = await searchPlaces(niche, area, limit);
 
+    const previewPlaces: PreviewPlace[] = places.map((place) => ({
+      placeId: place.placeId,
+      name: place.name,
+      formattedAddress: place.formattedAddress,
+      phoneRaw: place.phone,
+      phoneE164: normalizePhone(place.phone),
+      website: place.website,
+      hasWebsite: place.hasWebsite,
+      lat: place.lat,
+      lng: place.lng,
+    }));
+
     return NextResponse.json({
       area,
       niche,
-      count: places.length,
-      places,
+      count: previewPlaces.length,
+      places: previewPlaces,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

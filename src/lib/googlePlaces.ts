@@ -9,6 +9,7 @@ const FIELD_MASK = [
   "places.formattedAddress",
   "places.internationalPhoneNumber",
   "places.websiteUri",
+  "places.location",
 ].join(",");
 
 const DETAILS_FIELD_MASK = [
@@ -17,6 +18,7 @@ const DETAILS_FIELD_MASK = [
   "formattedAddress",
   "internationalPhoneNumber",
   "websiteUri",
+  "location",
 ].join(",");
 
 export interface PlaceResult {
@@ -26,6 +28,8 @@ export interface PlaceResult {
   phone: string | null;
   website: string | null;
   hasWebsite: boolean;
+  lat: number | null;
+  lng: number | null;
 }
 
 interface TextSearchPlace {
@@ -34,6 +38,7 @@ interface TextSearchPlace {
   formattedAddress?: string;
   internationalPhoneNumber?: string;
   websiteUri?: string;
+  location?: { latitude: number; longitude: number };
 }
 
 interface TextSearchResponse {
@@ -46,6 +51,7 @@ interface PlaceDetailsResponse {
   formattedAddress?: string;
   internationalPhoneNumber?: string;
   websiteUri?: string;
+  location?: { latitude: number; longitude: number };
 }
 
 export async function searchPlaces(
@@ -92,6 +98,8 @@ export async function searchPlaces(
         phone: place.internationalPhoneNumber,
         website: place.websiteUri || null,
         hasWebsite: !!place.websiteUri,
+        lat: place.location?.latitude ?? null,
+        lng: place.location?.longitude ?? null,
       });
     } else {
       const details = await getPlaceDetails(place.id);
@@ -131,6 +139,8 @@ async function getPlaceDetails(placeId: string): Promise<PlaceResult | null> {
     phone: data.internationalPhoneNumber || null,
     website: data.websiteUri || null,
     hasWebsite: !!data.websiteUri,
+    lat: data.location?.latitude ?? null,
+    lng: data.location?.longitude ?? null,
   };
 }
 
