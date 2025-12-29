@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { PutCommand } from "@aws-sdk/lib-dynamodb";
+import { PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { ulid } from "ulid";
 import { ddb, TABLE_NAME } from "@/lib/ddb";
+import { normalizeArea } from "@/lib/area";
 
 interface BookingDraftInput {
   serviceKey: string;
@@ -65,6 +66,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
+  // Normalize area and check if open
+  const area = normalizeArea(body.area);
+
+  try {
+    const areaConfigResult = await ddb.send(
+      new GetCommand({
+        TableName: TABLE_NAME,
+        Key: { PK: `AREA_CONFIG#${area}`, SK: "CONFIG" },
+      })
+    );
+
+    const areaConfig = areaConfigResult.Item;
+    if (!areaConfig) {
+      // Demand discovery: log attempts to book in unseeded areas
+      console.log("[Booking] DEMAND_SIGNAL area_not_configured:", {
+        area,
+        route: "/api/bookings",
+        timestamp: new Date().toISOString(),
+      });
+      return NextResponse.json({ error: "area_closed" }, { status: 403 });
+    }
+    if (areaConfig.isOpen !== true) {
+      console.log("[Booking] Area closed:", area);
+      return NextResponse.json({ error: "area_closed" }, { status: 403 });
+    }
+  } catch (err) {
+    console.error("[Booking] Failed to check area config:", area, err);
+    // Fail closed: if we can't check, reject the booking
+    return NextResponse.json({ error: "area_closed" }, { status: 403 });
+  }
+
   const bookingId = ulid();
   const now = new Date().toISOString();
   const status = "PENDING_PAYMENT";
@@ -88,10 +120,10 @@ export async function POST(request: Request) {
     customerName: body.customerName,
     phone: body.phone,
     email: body.email,
-    area: body.area,
+    area,
     createdAt: now,
     updatedAt: now,
-    GSI1PK: `AREA#${body.area}#STATUS#${status}`,
+    GSI1PK: `AREA#${area}#STATUS#${status}`,
     GSI1SK: `CREATED#${now}#BOOKING#${bookingId}`,
   };
 
