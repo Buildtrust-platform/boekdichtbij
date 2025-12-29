@@ -5,9 +5,24 @@ import { ddb, TABLE_NAME } from "@/lib/ddb";
 import { dispatchWave1 } from "@/lib/dispatchWave1";
 import { scheduleAssignmentDeadline, scheduleWave2Dispatch } from "@/lib/scheduler";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy initialization to avoid build-time errors when env var not available
+let stripeClient: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!stripeClient) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("STRIPE_SECRET_KEY not configured");
+    }
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripeClient;
+}
 
-const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
+function getWebhookSecret(): string {
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    throw new Error("STRIPE_WEBHOOK_SECRET not configured");
+  }
+  return process.env.STRIPE_WEBHOOK_SECRET;
+}
 
 // Deadline in minutes (15 minutes default)
 const ASSIGNMENT_DEADLINE_MINUTES = 15;
@@ -25,7 +40,7 @@ export async function POST(request: Request) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, signature, WEBHOOK_SECRET);
+    event = getStripe().webhooks.constructEvent(body, signature, getWebhookSecret());
   } catch (err) {
     console.error("[Webhook] Signature verification failed:", err);
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 });

@@ -3,7 +3,17 @@ import { GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import Stripe from "stripe";
 import { ddb, TABLE_NAME } from "@/lib/ddb";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy initialization to avoid build-time errors when env var not available
+let stripeClient: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!stripeClient) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("STRIPE_SECRET_KEY not configured");
+    }
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripeClient;
+}
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -46,7 +56,7 @@ export async function POST(request: Request) {
   }
 
   // Create Stripe Checkout Session
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     payment_method_types: ["card", "ideal"],
     line_items: [
       {
