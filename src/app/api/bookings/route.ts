@@ -3,6 +3,7 @@ import { PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { ulid } from "ulid";
 import { ddb, TABLE_NAME } from "@/lib/ddb";
 import { normalizeArea } from "@/lib/area";
+import { getServiceConfig } from "@/lib/serviceConfig";
 
 interface BookingDraftInput {
   serviceKey: string;
@@ -20,6 +21,7 @@ interface BookingDraftInput {
   phone: string;
   email: string;
   area: string;
+  vertical?: string;
 }
 
 const REQUIRED_FIELDS: (keyof BookingDraftInput)[] = [
@@ -97,6 +99,48 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "area_closed" }, { status: 403 });
   }
 
+  // Service enablement check (if vertical provided)
+  // For verticals with service config, enforce server-side pricing
+  let serverPriceCents = body.priceCents;
+  let serverPayoutCents = body.payoutCents;
+  let serverDurationMin = body.durationMin;
+
+  if (body.vertical) {
+    const vertical = body.vertical.trim().toLowerCase();
+    const serviceKey = body.serviceKey.trim().toLowerCase();
+
+    try {
+      const serviceConfig = await getServiceConfig(area, vertical, serviceKey);
+
+      if (!serviceConfig) {
+        console.log("[Booking] Service not configured:", { area, vertical, serviceKey });
+        return NextResponse.json({ error: "service_not_available" }, { status: 403 });
+      }
+
+      if (!serviceConfig.isEnabled) {
+        console.log("[Booking] Service disabled:", { area, vertical, serviceKey });
+        return NextResponse.json({ error: "service_not_available" }, { status: 403 });
+      }
+
+      // Use server-side pricing to prevent client-side manipulation
+      serverPriceCents = serviceConfig.priceCents;
+      serverPayoutCents = serviceConfig.payoutCents;
+      serverDurationMin = serviceConfig.durationMinutes;
+
+      console.log("[Booking] Service config applied:", {
+        area,
+        vertical,
+        serviceKey,
+        priceCents: serverPriceCents,
+        payoutCents: serverPayoutCents,
+      });
+    } catch (err) {
+      console.error("[Booking] Failed to check service config:", { area, vertical, serviceKey }, err);
+      // Fail closed: if we can't check, reject the booking
+      return NextResponse.json({ error: "service_not_available" }, { status: 403 });
+    }
+  }
+
   const bookingId = ulid();
   const now = new Date().toISOString();
   const status = "PENDING_PAYMENT";
@@ -108,9 +152,9 @@ export async function POST(request: Request) {
     status,
     serviceKey: body.serviceKey,
     serviceName: body.serviceName,
-    durationMin: body.durationMin,
-    priceCents: body.priceCents,
-    payoutCents: body.payoutCents,
+    durationMin: serverDurationMin,
+    priceCents: serverPriceCents,
+    payoutCents: serverPayoutCents,
     timeWindowLabel: body.timeWindowLabel,
     windowStart: body.windowStart,
     windowEnd: body.windowEnd,

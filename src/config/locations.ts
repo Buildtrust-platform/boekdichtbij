@@ -76,6 +76,13 @@ export const AREAS: Record<string, AreaConfig> = {
     neighbors: ["schiedam"],
     rolloutStatus: "hidden",
   },
+  "rotterdam-west": {
+    city: "rotterdam",
+    label: "Rotterdam-West",
+    enabled: true,
+    neighbors: ["schiedam", "rotterdam-centrum"],
+    rolloutStatus: "pilot",
+  },
   "capelle-aan-den-ijssel": {
     city: "rotterdam",
     label: "Capelle aan den IJssel",
