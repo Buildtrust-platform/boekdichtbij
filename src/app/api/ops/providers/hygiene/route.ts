@@ -46,6 +46,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "area_required" }, { status: 400 });
   }
 
+  // Normalize area to lowercase (consistent with rest of codebase)
+  const normalizedArea = area.trim().toLowerCase();
+
   // Parse and clamp limit
   let limit = 50;
   if (limitParam) {
@@ -67,7 +70,7 @@ export async function GET(request: Request) {
           IndexName: "GSI2",
           KeyConditionExpression: "GSI2PK = :pk",
           ExpressionAttributeValues: {
-            ":pk": `AREA#${area}`,
+            ":pk": `AREA#${normalizedArea}`,
           },
           ScanIndexForward: true,
           ExclusiveStartKey: lastKey,
@@ -93,6 +96,9 @@ export async function GET(request: Request) {
     console.error("[hygiene] Failed to query providers:", err);
     return NextResponse.json({ error: "query_failed" }, { status: 500 });
   }
+
+  // Track if we hit the limit (counts are partial)
+  const isPartial = providers.length >= limit || !!lastKey;
 
   // Compute counts and categorize
   let total = 0;
@@ -137,8 +143,9 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({
-    area,
-    counts: {
+    area: normalizedArea,
+    isPartial,
+    countsInResponse: {
       total,
       active,
       activeClaimed,
