@@ -75,6 +75,91 @@ export const COPY = {
     loading: "Bezig met laden",
     required: "verplicht",
   },
+
+  // Booking
+  booking: {
+    headerLabel: "BoekDichtbij",
+    h1Ridderkerk: "Boek een kapper in Ridderkerk",
+    sublineRidderkerk: "Beschikbaar in Ridderkerk en omgeving",
+    chooseService: "Kies een dienst",
+    chooseTime: "Kies een tijd",
+    timeNote: "Tijden zijn tijdsvakken.",
+    timeWindowToday1500: "Vandaag 15:00–16:00",
+    timeWindowToday1600: "Vandaag 16:00–17:00",
+    timeWindowTomorrow1000: "Morgen 10:00–11:00",
+    timeWindowTomorrow1100: "Morgen 11:00–12:00",
+    location: "Locatie",
+    details: "Gegevens",
+    detailsNote: "Deze gegevens worden alleen gebruikt voor de boeking.",
+    summary: "Samenvatting",
+    cta: "Bevestig en betaal",
+    ctaSubtext: "Betaling bevestigt de boeking.",
+    guarantee: "Als er geen kapper beschikbaar is voor het gekozen tijdvak, wordt u automatisch terugbetaald of opnieuw ingepland.",
+    receivedTitle: "Boeking ontvangen",
+    receivedLine1: "Wij controleren de beschikbaarheid.",
+    receivedLine2: "Dit duurt meestal enkele minuten.",
+    genericError: "De boeking kon niet worden voltooid.",
+    cancelledTitle: "Betaling geannuleerd",
+    cancelledLine1: "De betaling is niet voltooid.",
+    cancelledLine2: "Je kunt een nieuwe boeking maken.",
+    tryAgain: "Opnieuw proberen",
+  },
+
+  // Dispatch (provider WhatsApp messages)
+  dispatch: {
+    broadcastHeader: "Nieuwe betaalde boeking via BoekDichtbij",
+    broadcastService: "Dienst",
+    broadcastTimeSlot: "Tijdvak",
+    broadcastLocation: "Locatie",
+    broadcastPayout: "Uitbetaling",
+    broadcastAccept: "Antwoord JA om te accepteren.",
+    broadcastCode: "Code",
+  },
+
+  // Acceptance flow (provider WhatsApp replies)
+  acceptance: {
+    alreadyAssigned: "De boeking is inmiddels toegewezen.",
+    assignedConfirm: "Boeking toegewezen.",
+    detailsFollow: "Klantgegevens volgen.",
+    bookingDetails: "Boekingsgegevens",
+    service: "Dienst",
+    timeSlot: "Tijdvak",
+    address: "Adres",
+    customerName: "Naam klant",
+    phone: "Telefoon",
+    payout: "Uitbetaling",
+    invalidCode: "Onbekende code. Stuur JA gevolgd door de code.",
+    notJa: "Antwoord JA gevolgd door de code om te accepteren.",
+  },
+
+  // Provider invite (WhatsApp message)
+  providerInvite: {
+    intro: "BoekDichtbij stuurt betaalde boekingen.",
+    instruction: "Wil je meedoen? Open:",
+  },
+
+  // Provider claim page
+  providerClaim: {
+    pageTitle: "Activeer je account",
+    pageSubtitle: "Vul je gegevens in om boekingen te ontvangen.",
+    whatsappLabel: "WhatsApp-nummer",
+    whatsappHint: "Gebruik formaat +31612345678",
+    whatsappRequired: "WhatsApp-nummer is verplicht",
+    whatsappInvalid: "Ongeldig telefoonnummer. Gebruik formaat +31612345678",
+    whatsappInUse: "Dit nummer is al gekoppeld aan een ander account.",
+    payoutLabel: "Uitbetalingsvoorkeur",
+    payoutPercentage: "Percentage van boeking",
+    payoutFixed: "Vast bedrag per boeking",
+    percentageLabel: "Percentage",
+    fixedAmountLabel: "Vast bedrag (euro)",
+    activateLabel: "Account activeren",
+    activateDescription: "Je ontvangt boekingen zodra je activeert.",
+    submitButton: "Activeren",
+    successTitle: "Account geactiveerd",
+    successMessage: "Je ontvangt nu boekingen via WhatsApp.",
+    invalidInvite: "Ongeldige of verlopen uitnodiging.",
+    alreadyUsed: "Deze uitnodiging is al gebruikt.",
+  },
 } as const;
 
 export type CopyKeys = keyof typeof COPY;

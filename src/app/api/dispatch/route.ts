@@ -16,21 +16,5 @@ export async function POST(request: Request) {
 
   const result = await dispatchWave1(bookingId);
 
-  if (result.skipped) {
-    if (result.reason === "not_found") {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
-    }
-    if (result.reason === "status_not_pending_assignment") {
-      return NextResponse.json({ error: "status_conflict" }, { status: 409 });
-    }
-    if (result.reason === "already_dispatched") {
-      return NextResponse.json({ error: "already_dispatched" }, { status: 409 });
-    }
-  }
-
-  return NextResponse.json({
-    dispatched: result.dispatched,
-    wave: result.wave,
-    providersNotified: result.providersNotified,
-  });
+  return NextResponse.json(result);
 }

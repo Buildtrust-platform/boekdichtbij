@@ -4,66 +4,44 @@ import {
   PutCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { ddb, TABLE_NAME } from "@/lib/ddb";
-import { sendWhatsAppWithButtons } from "@/lib/sendWhatsApp";
+import { sendWhatsApp } from "@/lib/twilio";
+import { buildBroadcastMessage } from "@/lib/broadcastMessage";
 
 interface Booking {
   bookingId: string;
   status: string;
   area: string;
   serviceName: string;
-  serviceType?: string;
   timeWindowLabel: string;
   place: string;
   payoutCents: number;
-  dispatchStartedAt?: string;
+  acceptCode?: string;
 }
 
 interface Provider {
   providerId: string;
   whatsappPhone: string;
-  whatsappStatus?: string;
   isActive: boolean;
-  genderServices?: string[];
 }
 
-function formatPayout(cents: number): string {
-  const euros = cents / 100;
-  return euros % 1 === 0 ? euros.toString() : euros.toFixed(2);
-}
-
-/**
- * Determine required gender from booking serviceType.
- * herenkapper => "men"
- * dameskapper => "women"
- * Default to "men" for backwards compatibility.
- */
-function getRequiredGender(booking: Booking): "men" | "women" {
-  const serviceType = booking.serviceType?.toLowerCase() || "";
-  if (serviceType === "dameskapper") return "women";
-  return "men";
-}
-
-/**
- * Check if provider serves the required gender.
- * Backwards compatibility: if genderServices is missing, treat as ["men"].
- */
-function providerServesGender(provider: Provider, requiredGender: "men" | "women"): boolean {
-  const genderServices = provider.genderServices ?? ["men"];
-  return genderServices.includes(requiredGender);
+function generateAcceptCode(): string {
+  // Generate 5-char uppercase alphanumeric code
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // No I, O, 0, 1 to avoid confusion
+  let code = "";
+  for (let i = 0; i < 5; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
 }
 
 export interface DispatchResult {
-  dispatched: boolean;
-  wave: number;
-  providersNotified: number;
-  skipped?: boolean;
-  reason?: string;
-  requiredGender?: "men" | "women";
+  sent: number;
+  providers: { providerId: string; twilioSid: string }[];
 }
 
 export async function dispatchWave1(bookingId: string): Promise<DispatchResult> {
+  // Load booking
   const bookingResult = await ddb.send(
     new GetCommand({
       TableName: TABLE_NAME,
@@ -72,128 +50,144 @@ export async function dispatchWave1(bookingId: string): Promise<DispatchResult> 
   );
 
   if (!bookingResult.Item) {
-    return { dispatched: false, wave: 1, providersNotified: 0, skipped: true, reason: "not_found" };
+    console.log("[dispatchWave1] Booking not found:", bookingId);
+    return { sent: 0, providers: [] };
   }
 
   const booking = bookingResult.Item as Booking;
 
+  // Validate status
   if (booking.status !== "PENDING_ASSIGNMENT") {
-    return { dispatched: false, wave: 1, providersNotified: 0, skipped: true, reason: "status_not_pending_assignment" };
+    console.log("[dispatchWave1] Status not PENDING_ASSIGNMENT:", booking.status);
+    return { sent: 0, providers: [] };
   }
 
-  if (booking.dispatchStartedAt) {
-    return { dispatched: false, wave: 1, providersNotified: 0, skipped: true, reason: "already_dispatched" };
+  // Anti-duplicate guard: check if BROADCAST items already exist
+  const existingBroadcasts = await ddb.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :skPrefix)",
+      ExpressionAttributeValues: {
+        ":pk": `BOOKING#${bookingId}`,
+        ":skPrefix": "BROADCAST#",
+      },
+      Limit: 1,
+    })
+  );
+
+  if (existingBroadcasts.Items && existingBroadcasts.Items.length > 0) {
+    console.log("[dispatchWave1] Already dispatched:", bookingId);
+    return { sent: 0, providers: [] };
   }
 
-  const requiredGender = getRequiredGender(booking);
+  // Generate or use existing acceptCode
+  let acceptCode = booking.acceptCode;
+  if (!acceptCode) {
+    acceptCode = generateAcceptCode();
 
-  const now = new Date().toISOString();
-  const deadline = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
-  // Conditional update to claim dispatch - prevents double-dispatch race condition
-  try {
+    // Update booking with acceptCode
     await ddb.send(
       new UpdateCommand({
         TableName: TABLE_NAME,
         Key: { PK: `BOOKING#${bookingId}`, SK: "BOOKING" },
-        UpdateExpression:
-          "SET dispatchStartedAt = :started, assignmentDeadline = :deadline, updatedAt = :now",
-        ConditionExpression: "attribute_not_exists(dispatchStartedAt)",
+        UpdateExpression: "SET acceptCode = :code, updatedAt = :now",
         ExpressionAttributeValues: {
-          ":started": now,
-          ":deadline": deadline,
-          ":now": now,
+          ":code": acceptCode,
+          ":now": new Date().toISOString(),
         },
       })
     );
-  } catch (error) {
-    if (error instanceof ConditionalCheckFailedException) {
-      return { dispatched: false, wave: 1, providersNotified: 0, skipped: true, reason: "already_dispatched" };
-    }
-    throw error;
+
+    // Create ACCEPT mapping item for code lookup
+    await ddb.send(
+      new PutCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          PK: `ACCEPT#${acceptCode}`,
+          SK: "BOOKING",
+          type: "ACCEPT_MAP",
+          bookingId,
+          createdAt: new Date().toISOString(),
+        },
+      })
+    );
+
+    console.log("[dispatchWave1] Generated acceptCode:", acceptCode, "for booking:", bookingId);
   }
 
-  // Query providers for Wave 1
+  // Query providers by area using GSI2
   const providerResult = await ddb.send(
     new QueryCommand({
       TableName: TABLE_NAME,
       IndexName: "GSI2",
       KeyConditionExpression: "GSI2PK = :pk",
-      FilterExpression: "isActive = :active AND attribute_exists(whatsappPhone)",
       ExpressionAttributeValues: {
         ":pk": `AREA#${booking.area}`,
-        ":active": true,
       },
-      ScanIndexForward: false,
-      Limit: 20, // Fetch more to filter by gender
+      ScanIndexForward: true, // Lower SCORE# values first (inverted score)
     })
   );
 
-  // Filter providers by gender service and whatsapp validity
+  // Select first 3 active providers with whatsappPhone and completed claim
   const eligibleProviders = (providerResult.Items || [])
     .filter((p): p is Provider & Record<string, unknown> => {
-      if (typeof p.providerId !== "string" || typeof p.whatsappPhone !== "string") return false;
-      // Exclude providers with INVALID whatsapp status
-      if (p.whatsappStatus === "INVALID") return false;
-      // Check gender eligibility
-      return providerServesGender(p as Provider, requiredGender);
+      return (
+        typeof p.providerId === "string" &&
+        typeof p.whatsappPhone === "string" &&
+        p.whatsappPhone.length > 0 &&
+        p.isActive === true &&
+        !!p.claimedAt // Must have completed claim
+      );
     })
     .slice(0, 3);
 
-  const location = booking.place || booking.area;
-  const payout = formatPayout(booking.payoutCents);
-
-  // Send WhatsApp to each provider
-  for (const provider of eligibleProviders) {
-    await sendWhatsAppWithButtons(provider.whatsappPhone, {
-      bookingId,
-      serviceName: booking.serviceName,
-      timeWindowLabel: booking.timeWindowLabel,
-      place: location,
-      payout,
-    });
-
-    await ddb.send(
-      new PutCommand({
-        TableName: TABLE_NAME,
-        Item: {
-          PK: `BOOKING#${bookingId}`,
-          SK: `BROADCAST#${now}#PROVIDER#${provider.providerId}`,
-          type: "BROADCAST",
-          providerId: provider.providerId,
-          sentAt: now,
-          wave: 1,
-          area: booking.area,
-          status: "SENT",
-        },
-      })
-    );
+  if (eligibleProviders.length === 0) {
+    console.log("[dispatchWave1] No eligible providers for area:", booking.area);
+    return { sent: 0, providers: [] };
   }
 
-  // Write broadcast_sent event with gender metadata
-  await ddb.send(
-    new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        PK: `BOOKING#${bookingId}`,
-        SK: `EVENT#${now}#broadcast_sent`,
-        type: "EVENT",
-        eventName: "broadcast_sent",
-        at: now,
-        meta: {
-          wave: 1,
-          providerCount: eligibleProviders.length,
-          requiredGender,
-          matchedProviders: eligibleProviders.length,
-        },
-      },
-    })
-  );
+  const now = new Date().toISOString();
 
-  return {
-    dispatched: true,
-    wave: 1,
-    providersNotified: eligibleProviders.length,
-    requiredGender,
-  };
+  // Build message using shared builder
+  const messageBody = buildBroadcastMessage({
+    serviceName: booking.serviceName,
+    timeWindowLabel: booking.timeWindowLabel,
+    place: booking.place,
+    area: booking.area,
+    payoutCents: booking.payoutCents,
+    acceptCode,
+  });
+
+  const results: { providerId: string; twilioSid: string }[] = [];
+
+  // Send WhatsApp to each provider and record BROADCAST items
+  for (const provider of eligibleProviders) {
+    try {
+      const { sid } = await sendWhatsApp(provider.whatsappPhone, messageBody);
+
+      await ddb.send(
+        new PutCommand({
+          TableName: TABLE_NAME,
+          Item: {
+            PK: `BOOKING#${bookingId}`,
+            SK: `BROADCAST#${now}#PROVIDER#${provider.providerId}`,
+            type: "BROADCAST",
+            providerId: provider.providerId,
+            providerPhone: provider.whatsappPhone,
+            sentAt: now,
+            wave: 1,
+            status: "SENT",
+            twilioSid: sid,
+          },
+        })
+      );
+
+      results.push({ providerId: provider.providerId, twilioSid: sid });
+      console.log("[dispatchWave1] Sent to provider:", provider.providerId, "SID:", sid);
+    } catch (err) {
+      console.error("[dispatchWave1] Failed to send to provider:", provider.providerId, err);
+    }
+  }
+
+  return { sent: results.length, providers: results };
 }

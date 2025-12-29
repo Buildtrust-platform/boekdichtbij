@@ -1,5 +1,4 @@
-// Example: /ops?token=YOUR_OPS_TOKEN
-
+import { requireOpsAuth } from "@/lib/opsAuth";
 import OpsClient from "./OpsClient";
 
 interface PageProps {
@@ -8,10 +7,7 @@ interface PageProps {
 
 export default async function OpsPage({ searchParams }: PageProps) {
   const { token } = await searchParams;
-
-  if (!token || token !== process.env.OPS_TOKEN) {
-    return <p>Niet beschikbaar.</p>;
-  }
+  await requireOpsAuth(token);
 
   return <OpsClient />;
 }

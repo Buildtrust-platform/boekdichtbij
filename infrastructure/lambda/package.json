@@ -1,0 +1,23 @@
+{
+  "name": "boekdichtbij-lambdas",
+  "version": "1.0.0",
+  "description": "Lambda handlers for BoekDichtbij: deadline enforcement, wave2 dispatch",
+  "comment:dependencies": "Stripe v14 pinned intentionally (app root uses v20). Upgrade when ready to align API versions.",
+  "scripts": {
+    "build:deadline": "esbuild assignment-deadline.ts --bundle --platform=node --target=node18 --outfile=dist/assignment-deadline.js --external:@aws-sdk/* --minify",
+    "build:wave2": "esbuild wave2-dispatch.ts --bundle --platform=node --target=node18 --outfile=dist/wave2-dispatch.js --external:@aws-sdk/* --minify",
+    "build": "npm run build:deadline && npm run build:wave2",
+    "package:deadline": "npm run build:deadline && cd dist && zip -r ../assignment-deadline.zip assignment-deadline.js",
+    "package:wave2": "npm run build:wave2 && cd dist && zip -r ../wave2-dispatch.zip wave2-dispatch.js",
+    "package": "npm run build && cd dist && zip -r ../assignment-deadline.zip assignment-deadline.js && zip -r ../wave2-dispatch.zip wave2-dispatch.js"
+  },
+  "dependencies": {
+    "stripe": "^14.0.0",
+    "twilio": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.0.0"
+  }
+}
