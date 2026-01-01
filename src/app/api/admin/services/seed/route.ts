@@ -16,7 +16,7 @@ interface ServiceSeedConfig {
 }
 
 /**
- * Rotterdam-West cleaning service launch configuration.
+ * Service configuration for controlled rollout.
  * schoonmaak-basis and ramen-binnen enabled.
  * schoonmaak-groot and eindschoonmaak disabled initially.
  */
@@ -57,6 +57,71 @@ const SERVICE_CONFIGS: ServiceSeedConfig[] = [
     priceCents: 16500,
     payoutCents: 13200,
     durationMinutes: 240,
+  },
+  // Ridderkerk schoonmaak (Step 1: Cell completion)
+  {
+    area: "ridderkerk",
+    vertical: "schoonmaak",
+    serviceKey: "schoonmaak-basis",
+    isEnabled: true,
+    priceCents: 7500,
+    payoutCents: 6000,
+    durationMinutes: 120,
+  },
+  {
+    area: "ridderkerk",
+    vertical: "schoonmaak",
+    serviceKey: "ramen-binnen",
+    isEnabled: true,
+    priceCents: 4500,
+    payoutCents: 3800,
+    durationMinutes: 60,
+  },
+  {
+    area: "ridderkerk",
+    vertical: "schoonmaak",
+    serviceKey: "schoonmaak-groot",
+    isEnabled: false,
+    priceCents: 11500,
+    payoutCents: 9200,
+    durationMinutes: 180,
+  },
+  {
+    area: "ridderkerk",
+    vertical: "schoonmaak",
+    serviceKey: "eindschoonmaak",
+    isEnabled: false,
+    priceCents: 16500,
+    payoutCents: 13200,
+    durationMinutes: 240,
+  },
+  // Rotterdam-West herenkapper (Step 2: Cell completion)
+  {
+    area: "rotterdam-west",
+    vertical: "herenkapper",
+    serviceKey: "haircut",
+    isEnabled: true,
+    priceCents: 3500,
+    payoutCents: 2800,
+    durationMinutes: 30,
+  },
+  {
+    area: "rotterdam-west",
+    vertical: "herenkapper",
+    serviceKey: "beard-trim",
+    isEnabled: true,
+    priceCents: 2000,
+    payoutCents: 1600,
+    durationMinutes: 15,
+  },
+  {
+    area: "rotterdam-west",
+    vertical: "herenkapper",
+    serviceKey: "haircut-beard",
+    isEnabled: true,
+    priceCents: 5000,
+    payoutCents: 4000,
+    durationMinutes: 45,
   },
 ];
 
