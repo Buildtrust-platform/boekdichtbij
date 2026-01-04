@@ -15,199 +15,96 @@ interface ServiceSeedConfig {
   durationMinutes: number;
 }
 
-/**
- * Service configuration for controlled rollout.
- * schoonmaak-basis and ramen-binnen enabled.
- * schoonmaak-groot and eindschoonmaak disabled initially.
- */
-const SERVICE_CONFIGS: ServiceSeedConfig[] = [
-  // Rotterdam-West schoonmaak
-  {
-    area: "rotterdam-west",
-    vertical: "schoonmaak",
-    serviceKey: "schoonmaak-basis",
-    isEnabled: true,
-    priceCents: 7500,
-    payoutCents: 6000,
-    durationMinutes: 120,
-  },
-  {
-    area: "rotterdam-west",
-    vertical: "schoonmaak",
-    serviceKey: "ramen-binnen",
-    isEnabled: true,
-    priceCents: 4500,
-    payoutCents: 3800,
-    durationMinutes: 60,
-  },
-  {
-    area: "rotterdam-west",
-    vertical: "schoonmaak",
-    serviceKey: "schoonmaak-groot",
-    isEnabled: false,
-    priceCents: 11500,
-    payoutCents: 9200,
-    durationMinutes: 180,
-  },
-  {
-    area: "rotterdam-west",
-    vertical: "schoonmaak",
-    serviceKey: "eindschoonmaak",
-    isEnabled: false,
-    priceCents: 16500,
-    payoutCents: 13200,
-    durationMinutes: 240,
-  },
-  // Ridderkerk schoonmaak (Step 1: Cell completion)
-  {
-    area: "ridderkerk",
-    vertical: "schoonmaak",
-    serviceKey: "schoonmaak-basis",
-    isEnabled: true,
-    priceCents: 7500,
-    payoutCents: 6000,
-    durationMinutes: 120,
-  },
-  {
-    area: "ridderkerk",
-    vertical: "schoonmaak",
-    serviceKey: "ramen-binnen",
-    isEnabled: true,
-    priceCents: 4500,
-    payoutCents: 3800,
-    durationMinutes: 60,
-  },
-  {
-    area: "ridderkerk",
-    vertical: "schoonmaak",
-    serviceKey: "schoonmaak-groot",
-    isEnabled: false,
-    priceCents: 11500,
-    payoutCents: 9200,
-    durationMinutes: 180,
-  },
-  {
-    area: "ridderkerk",
-    vertical: "schoonmaak",
-    serviceKey: "eindschoonmaak",
-    isEnabled: false,
-    priceCents: 16500,
-    payoutCents: 13200,
-    durationMinutes: 240,
-  },
-  // Ridderkerk herenkapper
-  {
-    area: "ridderkerk",
-    vertical: "herenkapper",
-    serviceKey: "heren-standaard",
-    isEnabled: true,
-    priceCents: 3500,
-    payoutCents: 2800,
-    durationMinutes: 30,
-  },
-  {
-    area: "ridderkerk",
-    vertical: "herenkapper",
-    serviceKey: "heren-knip-baard",
-    isEnabled: true,
-    priceCents: 5000,
-    payoutCents: 4000,
-    durationMinutes: 45,
-  },
-  {
-    area: "ridderkerk",
-    vertical: "herenkapper",
-    serviceKey: "heren-special",
-    isEnabled: true,
-    priceCents: 6500,
-    payoutCents: 5200,
-    durationMinutes: 60,
-  },
-  // Ridderkerk dameskapper
-  {
-    area: "ridderkerk",
-    vertical: "dameskapper",
-    serviceKey: "dames-kort",
-    isEnabled: true,
-    priceCents: 4500,
-    payoutCents: 3600,
-    durationMinutes: 45,
-  },
-  {
-    area: "ridderkerk",
-    vertical: "dameskapper",
-    serviceKey: "dames-lang",
-    isEnabled: true,
-    priceCents: 6000,
-    payoutCents: 4800,
-    durationMinutes: 60,
-  },
-  {
-    area: "ridderkerk",
-    vertical: "dameskapper",
-    serviceKey: "dames-special",
-    isEnabled: true,
-    priceCents: 8500,
-    payoutCents: 6800,
-    durationMinutes: 90,
-  },
-  // Rotterdam-West herenkapper
-  {
-    area: "rotterdam-west",
-    vertical: "herenkapper",
-    serviceKey: "heren-standaard",
-    isEnabled: true,
-    priceCents: 3500,
-    payoutCents: 2800,
-    durationMinutes: 30,
-  },
-  {
-    area: "rotterdam-west",
-    vertical: "herenkapper",
-    serviceKey: "heren-knip-baard",
-    isEnabled: true,
-    priceCents: 5000,
-    payoutCents: 4000,
-    durationMinutes: 45,
-  },
-  {
-    area: "rotterdam-west",
-    vertical: "herenkapper",
-    serviceKey: "heren-special",
-    isEnabled: true,
-    priceCents: 6500,
-    payoutCents: 5200,
-    durationMinutes: 60,
-  },
-  // Rotterdam-West dameskapper
-  {
-    area: "rotterdam-west",
-    vertical: "dameskapper",
-    serviceKey: "dames-kort",
-    isEnabled: true,
-    priceCents: 4500,
-    payoutCents: 3600,
-    durationMinutes: 45,
-  },
-  {
-    area: "rotterdam-west",
-    vertical: "dameskapper",
-    serviceKey: "dames-lang",
-    isEnabled: true,
-    priceCents: 6000,
-    payoutCents: 4800,
-    durationMinutes: 60,
-  },
-  {
-    area: "rotterdam-west",
-    vertical: "dameskapper",
-    serviceKey: "dames-special",
-    isEnabled: true,
-    priceCents: 8500,
-    payoutCents: 6800,
-    durationMinutes: 90,
-  },
+// All 15 areas
+const ALL_AREAS = [
+  "ridderkerk",
+  "barendrecht",
+  "rotterdam-zuid",
+  "rotterdam-west",
+  "schiedam",
+  "vlaardingen",
+  "capelle",
+  "maassluis",
+  "spijkenisse",
+  "hoogvliet",
+  "ijsselmonde",
+  "krimpen",
+  "berkel",
+  "bergschenhoek",
+  "bleiswijk",
 ];
+
+// Service templates per vertical
+const HERENKAPPER_SERVICES = [
+  { serviceKey: "heren-standaard", priceCents: 3500, payoutCents: 2800, durationMinutes: 30 },
+  { serviceKey: "heren-knip-baard", priceCents: 5000, payoutCents: 4000, durationMinutes: 45 },
+  { serviceKey: "heren-special", priceCents: 6500, payoutCents: 5200, durationMinutes: 60 },
+];
+
+const DAMESKAPPER_SERVICES = [
+  { serviceKey: "dames-kort", priceCents: 4500, payoutCents: 3600, durationMinutes: 45 },
+  { serviceKey: "dames-lang", priceCents: 6000, payoutCents: 4800, durationMinutes: 60 },
+  { serviceKey: "dames-special", priceCents: 8500, payoutCents: 6800, durationMinutes: 90 },
+];
+
+const SCHOONMAAK_SERVICES = [
+  { serviceKey: "schoonmaak-basis", priceCents: 7500, payoutCents: 6000, durationMinutes: 120, isEnabled: true },
+  { serviceKey: "ramen-binnen", priceCents: 4500, payoutCents: 3800, durationMinutes: 60, isEnabled: true },
+  { serviceKey: "schoonmaak-groot", priceCents: 11500, payoutCents: 9200, durationMinutes: 180, isEnabled: false },
+  { serviceKey: "eindschoonmaak", priceCents: 16500, payoutCents: 13200, durationMinutes: 240, isEnabled: false },
+];
+
+/**
+ * Generate service configs for all areas and verticals
+ */
+function generateServiceConfigs(): ServiceSeedConfig[] {
+  const configs: ServiceSeedConfig[] = [];
+
+  for (const area of ALL_AREAS) {
+    // Herenkapper services (all enabled)
+    for (const svc of HERENKAPPER_SERVICES) {
+      configs.push({
+        area,
+        vertical: "herenkapper",
+        serviceKey: svc.serviceKey,
+        isEnabled: true,
+        priceCents: svc.priceCents,
+        payoutCents: svc.payoutCents,
+        durationMinutes: svc.durationMinutes,
+      });
+    }
+
+    // Dameskapper services (all enabled)
+    for (const svc of DAMESKAPPER_SERVICES) {
+      configs.push({
+        area,
+        vertical: "dameskapper",
+        serviceKey: svc.serviceKey,
+        isEnabled: true,
+        priceCents: svc.priceCents,
+        payoutCents: svc.payoutCents,
+        durationMinutes: svc.durationMinutes,
+      });
+    }
+
+    // Schoonmaak services (some enabled, some disabled)
+    for (const svc of SCHOONMAAK_SERVICES) {
+      configs.push({
+        area,
+        vertical: "schoonmaak",
+        serviceKey: svc.serviceKey,
+        isEnabled: svc.isEnabled,
+        priceCents: svc.priceCents,
+        payoutCents: svc.payoutCents,
+        durationMinutes: svc.durationMinutes,
+      });
+    }
+  }
+
+  return configs;
+}
+
+const SERVICE_CONFIGS: ServiceSeedConfig[] = generateServiceConfigs();
 
 /**
  * POST /api/admin/services/seed
