@@ -15,12 +15,12 @@ interface ServiceSeedConfig {
   durationMinutes: number;
 }
 
-// All 15 areas
+// All 15 areas (must match URL slugs in locations.ts AREAS registry)
 const ALL_AREAS = [
   "ridderkerk",
   "barendrecht",
-  "rotterdam-zuid",
-  "rotterdam-west",
+  "zuid",      // URL slug, not "rotterdam-zuid"
+  "west",      // URL slug, not "rotterdam-west"
   "schiedam",
   "vlaardingen",
   "capelle",
