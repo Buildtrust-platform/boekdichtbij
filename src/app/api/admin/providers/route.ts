@@ -3,12 +3,29 @@ import { QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb, TABLE_NAME } from "@/lib/ddb";
 
 const OPS_TOKEN = process.env.OPS_TOKEN;
-const VALID_AREAS = ["ridderkerk", "barendrecht", "rotterdam_zuid"];
+const VALID_AREAS = [
+  "ridderkerk",
+  "barendrecht",
+  "zuid",
+  "west",
+  "schiedam",
+  "vlaardingen",
+  "capelle",
+  "maassluis",
+  "spijkenisse",
+  "hoogvliet",
+  "ijsselmonde",
+  "krimpen",
+  "berkel",
+  "bergschenhoek",
+  "bleiswijk",
+];
 
 interface ProviderItem {
   providerId: string;
   name: string;
   area: string;
+  vertical?: string;
   formattedAddress?: string;
   whatsappPhone: string;
   whatsappStatus?: string;
@@ -28,6 +45,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const area = searchParams.get("area");
+  const verticalFilter = searchParams.get("vertical");
   const activeOnly = searchParams.get("activeOnly") === "true";
   const whatsappStatusFilter = searchParams.get("whatsappStatus");
   const hasWebsiteFilter = searchParams.get("hasWebsite");
@@ -55,9 +73,12 @@ export async function GET(request: Request) {
         const hasWebsite = item.hasWebsite ?? false;
         // Backwards compatibility: treat missing genderServices as ["men"]
         const genderServices: string[] = item.genderServices ?? ["men"];
+        // Backwards compatibility: treat missing vertical as "herenkapper"
+        const vertical: string = item.vertical ?? "herenkapper";
 
         if (activeOnly && !isActive) continue;
         if (whatsappStatusFilter && whatsappStatus !== whatsappStatusFilter) continue;
+        if (verticalFilter && vertical !== verticalFilter) continue;
         if (hasWebsiteFilter !== null && hasWebsiteFilter !== undefined) {
           const wantWebsite = hasWebsiteFilter === "true";
           if (hasWebsite !== wantWebsite) continue;
@@ -67,6 +88,7 @@ export async function GET(request: Request) {
           providerId: item.providerId,
           name: item.name,
           area: item.area,
+          vertical,
           formattedAddress: item.formattedAddress,
           whatsappPhone: item.whatsappPhone,
           whatsappStatus,

@@ -76,11 +76,29 @@ export const COPY = {
     required: "verplicht",
   },
 
+  // Herenkapper services
+  herenkapper: {
+    "heren-standaard": "Heren Standaard Knipbeurt",
+    "heren-knip-baard": "Heren Knipbeurt + Baard",
+    "heren-special": "Heren Special Treatment",
+  },
+
+  // Dameskapper services
+  dameskapper: {
+    "dames-kort": "Dames Kort Haar",
+    "dames-lang": "Dames Lang Haar",
+    "dames-special": "Dames Special Treatment",
+  },
+
   // Booking
   booking: {
     headerLabel: "BoekDichtbij",
     h1Ridderkerk: "Boek een kapper in Ridderkerk",
     sublineRidderkerk: "Beschikbaar in Ridderkerk en omgeving",
+    h1Herenkapper: "Boek een herenkapper",
+    sublineHerenkapper: "Professionele herenkapper bij jou in de buurt",
+    h1Dameskapper: "Boek een dameskapper",
+    sublineDameskapper: "Professionele dameskapper bij jou in de buurt",
     chooseService: "Kies een dienst",
     chooseTime: "Kies een tijd",
     timeNote: "Tijden zijn tijdsvakken.",

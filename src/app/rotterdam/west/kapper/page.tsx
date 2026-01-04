@@ -4,7 +4,7 @@ export default function KapperPage() {
   return (
     <HerenkapperBooking
       citySlug="rotterdam"
-      areaSlug="west"
+      areaSlug="rotterdam-west"
       areaLabel="Rotterdam-West"
       serviceSlug="kapper"
     />

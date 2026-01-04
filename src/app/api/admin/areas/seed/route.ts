@@ -7,18 +7,24 @@ const OPS_TOKEN = process.env.OPS_TOKEN;
 
 /**
  * Area rollout configuration.
- * Only ridderkerk is open initially.
+ * All areas are open (live status in locations.ts).
  */
 const AREA_CONFIGS: { area: string; isOpen: boolean }[] = [
   { area: "ridderkerk", isOpen: true },
-  { area: "rotterdam-centrum", isOpen: false },
-  { area: "rotterdam-zuid", isOpen: false },
-  { area: "rotterdam-west", isOpen: false },
-  { area: "schiedam", isOpen: false },
-  { area: "capelle-aan-den-ijssel", isOpen: false },
-  { area: "barendrecht", isOpen: false },
-  { area: "vlaardingen", isOpen: false },
-  { area: "hoogvliet", isOpen: false },
+  { area: "barendrecht", isOpen: true },
+  { area: "zuid", isOpen: true },
+  { area: "west", isOpen: true },
+  { area: "schiedam", isOpen: true },
+  { area: "vlaardingen", isOpen: true },
+  { area: "capelle", isOpen: true },
+  { area: "maassluis", isOpen: true },
+  { area: "spijkenisse", isOpen: true },
+  { area: "hoogvliet", isOpen: true },
+  { area: "ijsselmonde", isOpen: true },
+  { area: "krimpen", isOpen: true },
+  { area: "berkel", isOpen: true },
+  { area: "bergschenhoek", isOpen: true },
+  { area: "bleiswijk", isOpen: true },
 ];
 
 /**

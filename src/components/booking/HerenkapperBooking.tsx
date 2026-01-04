@@ -1,25 +1,34 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { getAreaDbKey } from "@/config/locations";
 import { COPY } from "@/lib/copy";
 
 // ==================================================
-// HERENKAPPER — STRICT BOOKING MODEL (LOCKED)
+// HERENKAPPER — STRICT BOOKING MODEL
 // ==================================================
-// - Fixed services, fixed prices, fixed time windows
+// - Services loaded dynamically from service config
+// - Fixed prices per service
 // - Immediate payment required
-// - Availability confirmed after payment
-// - Dispatched to providers with genderServices: ["men"]
+// - Dispatched to herenkapper providers in the area
 // ==================================================
 
-const SERVICES = [
-  { key: "haircut", name: "Knipbeurt", durationMin: 30, priceCents: 3500, payoutCents: 2800 },
-  { key: "beard-trim", name: "Baard trimmen", durationMin: 15, priceCents: 2000, payoutCents: 1600 },
-  { key: "haircut-beard", name: "Knipbeurt + baard", durationMin: 45, priceCents: 5000, payoutCents: 4000 },
-];
+interface ServiceOption {
+  key: string;
+  name: string;
+  durationMin: number;
+  priceCents: number;
+  payoutCents: number;
+}
+
+// Service display names
+const SERVICE_NAMES: Record<string, string> = {
+  "heren-standaard": "Heren Standaard Knipbeurt",
+  "heren-knip-baard": "Heren Knipbeurt + Baard",
+  "heren-special": "Heren Special Treatment",
+};
 
 // Helper to get Amsterdam timezone date string (YYYY-MM-DD)
 function getAmsterdamDate(daysFromNow: number): string {
@@ -70,6 +79,10 @@ export default function HerenkapperBooking({
   areaSlug,
   areaLabel,
 }: HerenkapperBookingProps) {
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesError, setServicesError] = useState(false);
+
   const [serviceKey, setServiceKey] = useState("");
   const [timeWindowKey, setTimeWindowKey] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState("");
@@ -80,6 +93,38 @@ export default function HerenkapperBooking({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+
+  // Load enabled services for this area
+  useEffect(() => {
+    async function loadServices() {
+      try {
+        const res = await fetch(`/api/services?area=${encodeURIComponent(areaSlug)}&vertical=herenkapper`);
+        if (!res.ok) {
+          setServicesError(true);
+          return;
+        }
+        const data = await res.json();
+        const loadedServices: ServiceOption[] = (data.services || []).map((s: {
+          serviceKey: string;
+          priceCents: number;
+          payoutCents: number;
+          durationMinutes: number;
+        }) => ({
+          key: s.serviceKey,
+          name: SERVICE_NAMES[s.serviceKey] || s.serviceKey,
+          durationMin: s.durationMinutes,
+          priceCents: s.priceCents,
+          payoutCents: s.payoutCents,
+        }));
+        setServices(loadedServices);
+      } catch {
+        setServicesError(true);
+      } finally {
+        setServicesLoading(false);
+      }
+    }
+    loadServices();
+  }, [areaSlug]);
 
   // Build time windows dynamically based on current date
   const timeWindows: TimeWindow[] = useMemo(() => {
@@ -93,7 +138,7 @@ export default function HerenkapperBooking({
     ];
   }, []);
 
-  const selectedService = SERVICES.find((s) => s.key === serviceKey);
+  const selectedService = services.find((s) => s.key === serviceKey);
   const selectedWindow = timeWindows.find((tw) => tw.key === timeWindowKey);
 
   const isFormValid =
@@ -140,6 +185,7 @@ export default function HerenkapperBooking({
           email: email.trim(),
           area: getAreaDbKey(areaSlug),
           serviceType: "herenkapper",
+          vertical: "herenkapper",
         }),
       });
 
@@ -172,6 +218,43 @@ export default function HerenkapperBooking({
     }
   }
 
+  if (servicesLoading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-primary-50 via-white to-white flex items-center justify-center">
+        <div className="text-gray-500">Laden...</div>
+      </main>
+    );
+  }
+
+  if (servicesError || services.length === 0) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-primary-50 via-white to-white">
+        <header className="px-4 py-4 sm:px-6 border-b border-gray-100">
+          <nav className="max-w-lg mx-auto flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                <ScissorsIcon className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold text-xl text-gray-900">{COPY.booking.headerLabel}</span>
+            </Link>
+            <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
+              {COPY.actions.cancel}
+            </Link>
+          </nav>
+        </header>
+        <div className="max-w-lg mx-auto px-4 py-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Herenkapper nog niet beschikbaar</h1>
+          <p className="text-gray-600">
+            Herenkappersdiensten zijn nog niet beschikbaar in {areaLabel}. Probeer het later opnieuw.
+          </p>
+          <Link href="/" className="inline-block mt-6 text-primary-600 hover:text-primary-700 font-medium">
+            Terug naar home
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-primary-50 via-white to-white">
       {/* Header */}
@@ -193,10 +276,10 @@ export default function HerenkapperBooking({
         {/* Title */}
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            {COPY.booking.h1Ridderkerk}
+            {COPY.booking.h1Herenkapper} in {areaLabel}
           </h1>
           <p className="text-gray-600 mt-2">
-            {COPY.booking.sublineRidderkerk}
+            {COPY.booking.sublineHerenkapper}
           </p>
         </div>
 
@@ -212,7 +295,7 @@ export default function HerenkapperBooking({
               </h2>
             </div>
             <div className="space-y-3">
-              {SERVICES.map((s) => (
+              {services.map((s) => (
                 <label
                   key={s.key}
                   className={`flex items-center justify-between p-4 bg-white border-2 rounded-xl cursor-pointer transition-all ${

@@ -1,5 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Button } from "@/components/ui";
+
+export const metadata: Metadata = {
+  title: "Lokaal boeken, eenvoudig geregeld | BoekDichtbij",
+  description:
+    "Boek een kapper of schoonmaakdienst bij jou in de buurt. Kies een moment, betaal veilig en wij regelen de rest. Actief in 15 gebieden rondom Rotterdam.",
+  keywords: "kapper boeken, schoonmaak boeken, Ridderkerk, Barendrecht, Schiedam, Vlaardingen, Capelle aan den IJssel, Rotterdam-West, Rotterdam-Zuid, Maassluis, Spijkenisse, Hoogvliet, IJsselmonde, Krimpen aan den IJssel, Berkel en Rodenrijs, Bergschenhoek, Bleiswijk, lokale diensten",
+};
 
 export default function Home() {
   return (
@@ -9,7 +17,7 @@ export default function Home() {
         <nav className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-              <ScissorsIcon className="w-5 h-5 text-white" />
+              <HomeServiceIcon className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold text-xl text-gray-900">BoekDichtbij</span>
           </div>
@@ -20,11 +28,6 @@ export default function Home() {
             >
               Inloggen
             </Link>
-            <Link href="/register">
-              <Button variant="outline" size="sm">
-                Registreren
-              </Button>
-            </Link>
           </div>
         </nav>
       </header>
@@ -32,115 +35,203 @@ export default function Home() {
       {/* Hero Section */}
       <section className="px-4 sm:px-6 pt-12 pb-16 sm:pt-20 sm:pb-24">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-700 px-3 py-1.5 rounded-full text-sm font-medium mb-6">
-            <SparkleIcon className="w-4 h-4" />
-            Nu beschikbaar in Ridderkerk
-          </div>
-
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight">
-            Boek een kapper
-            <span className="block text-primary-600">bij jou thuis</span>
+            Lokaal boeken,
+            <span className="block text-primary-600">eenvoudig geregeld</span>
           </h1>
 
           <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto">
-            Professionele kappers komen naar jou toe. Kies een tijdvak, bevestig je afspraak, en wij regelen de rest.
+            Boek een kapper of schoonmaakdienst bij jou in de buurt. Kies een moment, betaal veilig en wij regelen de rest.
           </p>
 
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/boeken" className="w-full sm:w-auto">
-              <Button size="lg" fullWidth className="sm:w-auto sm:px-8">
-                <CalendarIcon className="w-5 h-5" />
-                Afspraak maken
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/rotterdam/ridderkerk">
+              <Button size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Ridderkerk
               </Button>
             </Link>
-            <Link href="/mijn-afspraken" className="w-full sm:w-auto">
-              <Button variant="outline" size="lg" fullWidth className="sm:w-auto sm:px-8">
-                Mijn afspraken
+            <Link href="/rotterdam/barendrecht">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Barendrecht
+              </Button>
+            </Link>
+            <Link href="/rotterdam/zuid">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Rotterdam-Zuid
+              </Button>
+            </Link>
+            <Link href="/rotterdam/west">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Rotterdam-West
+              </Button>
+            </Link>
+            <Link href="/rotterdam/schiedam">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Schiedam
+              </Button>
+            </Link>
+            <Link href="/rotterdam/vlaardingen">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Vlaardingen
+              </Button>
+            </Link>
+            <Link href="/rotterdam/capelle">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Capelle
+              </Button>
+            </Link>
+            <Link href="/rotterdam/maassluis">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Maassluis
+              </Button>
+            </Link>
+            <Link href="/rotterdam/spijkenisse">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Spijkenisse
+              </Button>
+            </Link>
+            <Link href="/rotterdam/hoogvliet">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Hoogvliet
+              </Button>
+            </Link>
+            <Link href="/rotterdam/ijsselmonde">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                IJsselmonde
+              </Button>
+            </Link>
+            <Link href="/rotterdam/krimpen">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Krimpen a/d IJssel
+              </Button>
+            </Link>
+            <Link href="/rotterdam/berkel">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Berkel en Rodenrijs
+              </Button>
+            </Link>
+            <Link href="/rotterdam/bergschenhoek">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Bergschenhoek
+              </Button>
+            </Link>
+            <Link href="/rotterdam/bleiswijk">
+              <Button variant="outline" size="lg" className="px-6">
+                <LocationIcon className="w-5 h-5" />
+                Bleiswijk
               </Button>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Services Section */}
       <section className="px-4 sm:px-6 py-16 bg-white">
         <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-4">
+            Onze diensten
+          </h2>
+          <p className="text-gray-600 text-center mb-10 max-w-xl mx-auto">
+            Professionele dienstverlening bij jou in de buurt
+          </p>
+
+          <div className="grid sm:grid-cols-3 gap-6">
+            <ServiceCard
+              icon={<ScissorsIcon className="w-6 h-6" />}
+              title="Herenkapper"
+              description="Professionele knipbeurt en baardverzorging"
+              price="Vanaf €35"
+              href="/rotterdam/ridderkerk/herenkapper"
+            />
+            <ServiceCard
+              icon={<ScissorsIcon className="w-6 h-6" />}
+              title="Dameskapper"
+              description="Knippen en stylen voor alle haarlengtes"
+              price="Vanaf €45"
+              href="/rotterdam/ridderkerk/dameskapper"
+            />
+            <ServiceCard
+              icon={<CleaningIcon className="w-6 h-6" />}
+              title="Schoonmaak"
+              description="Basisschoonmaak, ramen en meer"
+              price="Vanaf €75"
+              href="/rotterdam/ridderkerk/schoonmaak"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="px-4 sm:px-6 py-16 bg-gray-50">
+        <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-12">
-            Hoe het werkt
+            Zo werkt het
           </h2>
 
           <div className="grid sm:grid-cols-3 gap-8">
             <FeatureCard
               step={1}
               icon={<CalendarCheckIcon className="w-6 h-6" />}
-              title="Kies een moment"
-              description="Selecteer een datum en tijdvak dat jou uitkomt. Ochtend, middag of avond."
+              title="Kies dienst & moment"
+              description="Selecteer wat je nodig hebt en wanneer het uitkomt."
             />
             <FeatureCard
               step={2}
               icon={<CreditCardIcon className="w-6 h-6" />}
-              title="Bevestig & betaal"
-              description="Veilig betalen met iDEAL of creditcard. Pas na betaling wordt een kapper gezocht."
+              title="Betaal veilig"
+              description="Transparante prijs vooraf. Betaal met iDEAL of kaart."
             />
             <FeatureCard
               step={3}
               icon={<HomeIcon className="w-6 h-6" />}
-              title="Kapper komt langs"
-              description="Een gekwalificeerde kapper komt naar jouw adres op het afgesproken moment."
+              title="Wij regelen de rest"
+              description="Een professional komt op het afgesproken moment bij je thuis."
             />
           </div>
         </div>
       </section>
 
-      {/* Services Preview */}
-      <section className="px-4 sm:px-6 py-16 bg-gray-50">
+      {/* Areas Section */}
+      <section className="px-4 sm:px-6 py-16 bg-white">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-4">
-            Onze diensten
+            Actieve gebieden
           </h2>
-          <p className="text-gray-600 text-center mb-10 max-w-xl mx-auto">
-            Professionele knipbeurten en baardverzorging bij jou thuis
+          <p className="text-gray-600 text-center mb-10">
+            BoekDichtbij is beschikbaar in de volgende regio&apos;s
           </p>
 
-          <div className="grid sm:grid-cols-3 gap-4">
-            <ServiceCard
-              name="Knipbeurt"
-              duration="30 min"
-              price="€25,00"
-            />
-            <ServiceCard
-              name="Baard trimmen"
-              duration="15 min"
-              price="€15,00"
-            />
-            <ServiceCard
-              name="Knipbeurt + Baard"
-              duration="45 min"
-              price="€35,00"
-              popular
-            />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <AreaCard href="/rotterdam/ridderkerk" name="Ridderkerk" />
+            <AreaCard href="/rotterdam/barendrecht" name="Barendrecht" />
+            <AreaCard href="/rotterdam/zuid" name="Rotterdam-Zuid" />
+            <AreaCard href="/rotterdam/west" name="Rotterdam-West" />
+            <AreaCard href="/rotterdam/schiedam" name="Schiedam" />
+            <AreaCard href="/rotterdam/vlaardingen" name="Vlaardingen" />
+            <AreaCard href="/rotterdam/capelle" name="Capelle a/d IJssel" />
+            <AreaCard href="/rotterdam/maassluis" name="Maassluis" />
+            <AreaCard href="/rotterdam/spijkenisse" name="Spijkenisse" />
+            <AreaCard href="/rotterdam/hoogvliet" name="Hoogvliet" />
+            <AreaCard href="/rotterdam/ijsselmonde" name="IJsselmonde" />
+            <AreaCard href="/rotterdam/krimpen" name="Krimpen a/d IJssel" />
+            <AreaCard href="/rotterdam/berkel" name="Berkel en Rodenrijs" />
+            <AreaCard href="/rotterdam/bergschenhoek" name="Bergschenhoek" />
+            <AreaCard href="/rotterdam/bleiswijk" name="Bleiswijk" />
           </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="px-4 sm:px-6 py-16 bg-primary-600">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
-            Klaar om te boeken?
-          </h2>
-          <p className="text-primary-100 mb-8 max-w-lg mx-auto">
-            Plan nu je afspraak en ervaar het gemak van een kapper aan huis.
-          </p>
-          <Link href="/boeken">
-            <Button
-              variant="secondary"
-              size="lg"
-              className="bg-white text-primary-700 hover:bg-primary-50"
-            >
-              Boek nu je afspraak
-            </Button>
-          </Link>
         </div>
       </section>
 
@@ -150,12 +241,29 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-primary-500 rounded flex items-center justify-center">
-                <ScissorsIcon className="w-4 h-4 text-white" />
+                <HomeServiceIcon className="w-4 h-4 text-white" />
               </div>
               <span className="font-semibold text-white">BoekDichtbij</span>
             </div>
+            <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
+              <Link href="/rotterdam/ridderkerk" className="hover:text-white transition-colors">Ridderkerk</Link>
+              <Link href="/rotterdam/barendrecht" className="hover:text-white transition-colors">Barendrecht</Link>
+              <Link href="/rotterdam/zuid" className="hover:text-white transition-colors">Rotterdam-Zuid</Link>
+              <Link href="/rotterdam/west" className="hover:text-white transition-colors">Rotterdam-West</Link>
+              <Link href="/rotterdam/schiedam" className="hover:text-white transition-colors">Schiedam</Link>
+              <Link href="/rotterdam/vlaardingen" className="hover:text-white transition-colors">Vlaardingen</Link>
+              <Link href="/rotterdam/capelle" className="hover:text-white transition-colors">Capelle</Link>
+              <Link href="/rotterdam/maassluis" className="hover:text-white transition-colors">Maassluis</Link>
+              <Link href="/rotterdam/spijkenisse" className="hover:text-white transition-colors">Spijkenisse</Link>
+              <Link href="/rotterdam/hoogvliet" className="hover:text-white transition-colors">Hoogvliet</Link>
+              <Link href="/rotterdam/ijsselmonde" className="hover:text-white transition-colors">IJsselmonde</Link>
+              <Link href="/rotterdam/krimpen" className="hover:text-white transition-colors">Krimpen</Link>
+              <Link href="/rotterdam/berkel" className="hover:text-white transition-colors">Berkel</Link>
+              <Link href="/rotterdam/bergschenhoek" className="hover:text-white transition-colors">Bergschenhoek</Link>
+              <Link href="/rotterdam/bleiswijk" className="hover:text-white transition-colors">Bleiswijk</Link>
+            </div>
             <p className="text-sm text-gray-400">
-              &copy; {new Date().getFullYear()} BoekDichtbij. Alle rechten voorbehouden.
+              &copy; {new Date().getFullYear()} BoekDichtbij
             </p>
           </div>
         </div>
@@ -190,32 +298,66 @@ function FeatureCard({
 }
 
 function ServiceCard({
-  name,
-  duration,
+  icon,
+  title,
+  description,
   price,
-  popular = false,
+  href,
 }: {
-  name: string;
-  duration: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
   price: string;
-  popular?: boolean;
+  href: string;
 }) {
   return (
-    <div
-      className={`
-        relative bg-white rounded-xl p-5 border-2 transition-all
-        ${popular ? "border-primary-500 shadow-lg" : "border-gray-200"}
-      `}
+    <Link
+      href={href}
+      className="group bg-white border-2 border-gray-200 rounded-2xl p-6 hover:border-primary-500 hover:shadow-lg transition-all"
     >
-      {popular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-medium px-3 py-1 rounded-full">
-          Populair
+      <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4 text-primary-600 group-hover:bg-primary-500 group-hover:text-white transition-colors">
+        {icon}
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-1">{title}</h3>
+      <p className="text-gray-600 text-sm mb-3">{description}</p>
+      <p className="text-primary-600 font-medium">{price}</p>
+    </Link>
+  );
+}
+
+function AreaCard({ href, name }: { href: string; name: string }) {
+  return (
+    <Link
+      href={href}
+      className="group bg-white border-2 border-gray-200 rounded-2xl p-6 hover:border-primary-500 hover:shadow-lg transition-all"
+    >
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center group-hover:bg-primary-500 transition-colors">
+          <LocationIcon className="w-6 h-6 text-primary-600 group-hover:text-white transition-colors" />
         </div>
-      )}
-      <h3 className="font-semibold text-gray-900">{name}</h3>
-      <p className="text-sm text-gray-500 mt-1">{duration}</p>
-      <p className="text-xl font-bold text-primary-600 mt-3">{price}</p>
-    </div>
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900">{name}</h3>
+          <p className="text-gray-600 text-sm">Kapper & schoonmaak</p>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function HomeServiceIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  );
+}
+
+function LocationIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
   );
 }
 
@@ -227,18 +369,10 @@ function ScissorsIcon({ className }: { className?: string }) {
   );
 }
 
-function SparkleIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 20 20">
-      <path d="M10 1l2.39 5.58L18 7.24l-4.55 3.9L14.76 17 10 14.27 5.24 17l1.31-5.86L2 7.24l5.61-.66L10 1z" />
-    </svg>
-  );
-}
-
-function CalendarIcon({ className }: { className?: string }) {
+function CleaningIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
     </svg>
   );
 }

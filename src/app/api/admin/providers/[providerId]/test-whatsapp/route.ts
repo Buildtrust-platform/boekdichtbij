@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { GetCommand, UpdateCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { UpdateCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb, TABLE_NAME } from "@/lib/ddb";
 import { sendWhatsApp } from "@/lib/sendWhatsApp";
+import { getProviderProfile } from "@/lib/providerStore";
 
 const OPS_TOKEN = process.env.OPS_TOKEN;
 
@@ -18,20 +19,15 @@ export async function POST(request: Request, context: RouteContext) {
   const { providerId } = await context.params;
 
   try {
-    const result = await ddb.send(
-      new GetCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          PK: `PROVIDER#${providerId}`,
-          SK: "PROVIDER",
-        },
-      })
-    );
+    // Use shared loader with migrate-on-read
+    const provider = await getProviderProfile(providerId);
 
-    const provider = result.Item;
     if (!provider) {
       return NextResponse.json({ error: "provider_not_found" }, { status: 404 });
     }
+
+    // After migration, always use PROFILE
+    const providerSK = "PROFILE";
 
     if (!provider.whatsappPhone) {
       return NextResponse.json({ error: "missing_whatsapp_phone" }, { status: 409 });
@@ -67,7 +63,7 @@ export async function POST(request: Request, context: RouteContext) {
         TableName: TABLE_NAME,
         Key: {
           PK: `PROVIDER#${providerId}`,
-          SK: "PROVIDER",
+          SK: providerSK,
         },
         UpdateExpression:
           "SET whatsappStatus = :status, whatsappLastCheckedAt = :checked, whatsappFailCount = :failCount, updatedAt = :now",

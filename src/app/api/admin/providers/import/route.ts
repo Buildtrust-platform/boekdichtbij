@@ -9,14 +9,32 @@ import {
 } from "@/lib/googlePlaces";
 
 const OPS_TOKEN = process.env.OPS_TOKEN;
-const VALID_AREAS = ["ridderkerk", "barendrecht", "rotterdam_zuid"];
+const VALID_AREAS = [
+  "ridderkerk",
+  "barendrecht",
+  "zuid",
+  "west",
+  "schiedam",
+  "vlaardingen",
+  "capelle",
+  "maassluis",
+  "spijkenisse",
+  "hoogvliet",
+  "ijsselmonde",
+  "krimpen",
+  "berkel",
+  "bergschenhoek",
+  "bleiswijk",
+];
 const VALID_GENDER_SERVICES = ["men", "women"];
+const VALID_VERTICALS = ["herenkapper", "dameskapper", "schoonmaak"];
 
 interface ImportInput {
   area: string;
   niche: string;
   limit?: number;
   genderServices?: string[];
+  vertical?: string;
 }
 
 function validateInput(body: unknown): body is ImportInput {
@@ -31,6 +49,9 @@ function validateInput(body: unknown): body is ImportInput {
     for (const gs of obj.genderServices) {
       if (typeof gs !== "string" || !VALID_GENDER_SERVICES.includes(gs)) return false;
     }
+  }
+  if (obj.vertical !== undefined) {
+    if (typeof obj.vertical !== "string" || !VALID_VERTICALS.includes(obj.vertical)) return false;
   }
   return true;
 }
@@ -74,7 +95,8 @@ async function createProvider(
   area: string,
   whatsappPhone: string,
   rawPhone: string | null,
-  genderServices: string[]
+  genderServices: string[],
+  vertical: string
 ): Promise<void> {
   const providerId = generateProviderId(place.placeId);
   const now = new Date().toISOString();
@@ -93,6 +115,7 @@ async function createProvider(
         whatsappPhone,
         whatsappStatus: "UNKNOWN",
         area,
+        vertical,
         isActive: true,
         reliabilityScore,
         hasWebsite: place.hasWebsite,
@@ -144,7 +167,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
 
-  const { area, niche, limit = 20, genderServices = ["men"] } = body;
+  const { area, niche, limit = 20, genderServices = ["men"], vertical = "herenkapper" } = body;
 
   try {
     const places = await searchPlaces(niche, area, limit);
@@ -175,7 +198,7 @@ export async function POST(request: Request) {
         continue;
       }
 
-      await createProvider(place, area, whatsappPhone, place.phone, genderServices);
+      await createProvider(place, area, whatsappPhone, place.phone, genderServices, vertical);
       inserted++;
       insertedProviders.push({
         providerId: generateProviderId(place.placeId),
@@ -188,6 +211,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       area,
       niche,
+      vertical,
       genderServices,
       summary: {
         inserted,

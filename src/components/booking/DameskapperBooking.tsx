@@ -1,25 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { getAreaDbKey } from "@/config/locations";
+import { COPY } from "@/lib/copy";
 
 // ==================================================
-// DAMESKAPPER — FLEXIBLE BOOKING MODEL (LOCKED)
+// DAMESKAPPER — STRICT BOOKING MODEL
 // ==================================================
-// - Intent-based service selection (no fixed time/price)
-// - "Vanaf €X" pricing (final price confirmed by provider)
-// - Customer submits preference, provider confirms details
-// - Dispatched to providers with genderServices: ["women"]
+// - Services loaded dynamically from service config
+// - Fixed prices per service
+// - Immediate payment required
+// - Dispatched to dameskapper providers in the area
 // ==================================================
 
-const SERVICE_INTENTS = [
-  { key: "knippen", name: "Knippen", fromPriceCents: 4500 },
-  { key: "knippen-fohnen", name: "Knippen + föhnen", fromPriceCents: 5500 },
-  { key: "kleuren", name: "Kleuren", fromPriceCents: 7500 },
-  { key: "styling", name: "Styling", fromPriceCents: 3500 },
-];
+interface ServiceOption {
+  key: string;
+  name: string;
+  durationMin: number;
+  priceCents: number;
+  payoutCents: number;
+}
+
+// Service display names
+const SERVICE_NAMES: Record<string, string> = {
+  "dames-kort": "Dames Kort Haar",
+  "dames-lang": "Dames Lang Haar",
+  "dames-special": "Dames Special Treatment",
+};
+
+// Helper to get Amsterdam timezone date string (YYYY-MM-DD)
+function getAmsterdamDate(daysFromNow: number): string {
+  const now = new Date();
+  const amsterdam = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Amsterdam" }));
+  amsterdam.setDate(amsterdam.getDate() + daysFromNow);
+  return amsterdam.toISOString().split("T")[0];
+}
+
+// Helper to create ISO timestamp in Amsterdam timezone
+function toAmsterdamISO(dateStr: string, time: string): string {
+  const dateTime = new Date(`${dateStr}T${time}:00`);
+  const amsterdamStr = dateTime.toLocaleString("en-US", {
+    timeZone: "Europe/Amsterdam",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = amsterdamStr.match(/(\d+)\/(\d+)\/(\d+),? (\d+):(\d+):(\d+)/);
+  if (!parts) return `${dateStr}T${time}:00+01:00`;
+  const [, month, day, year, hour, minute, second] = parts;
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${hour}:${minute}:${second}+01:00`;
+}
+
+interface TimeWindow {
+  key: string;
+  label: string;
+  dateStr: string;
+  startTime: string;
+  endTime: string;
+}
 
 interface DameskapperBookingProps {
   citySlug: string;
@@ -29,13 +73,15 @@ interface DameskapperBookingProps {
 }
 
 export default function DameskapperBooking({
-  citySlug,
   areaSlug,
   areaLabel,
 }: DameskapperBookingProps) {
-  const [intentKey, setIntentKey] = useState("");
-  const [datePreference, setDatePreference] = useState("");
-  const [notes, setNotes] = useState("");
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesError, setServicesError] = useState(false);
+
+  const [serviceKey, setServiceKey] = useState("");
+  const [timeWindowKey, setTimeWindowKey] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -45,11 +91,56 @@ export default function DameskapperBooking({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
-  const selectedIntent = SERVICE_INTENTS.find((s) => s.key === intentKey);
+  // Load enabled services for this area
+  useEffect(() => {
+    async function loadServices() {
+      try {
+        const res = await fetch(`/api/services?area=${encodeURIComponent(areaSlug)}&vertical=dameskapper`);
+        if (!res.ok) {
+          setServicesError(true);
+          return;
+        }
+        const data = await res.json();
+        const loadedServices: ServiceOption[] = (data.services || []).map((s: {
+          serviceKey: string;
+          priceCents: number;
+          payoutCents: number;
+          durationMinutes: number;
+        }) => ({
+          key: s.serviceKey,
+          name: SERVICE_NAMES[s.serviceKey] || s.serviceKey,
+          durationMin: s.durationMinutes,
+          priceCents: s.priceCents,
+          payoutCents: s.payoutCents,
+        }));
+        setServices(loadedServices);
+      } catch {
+        setServicesError(true);
+      } finally {
+        setServicesLoading(false);
+      }
+    }
+    loadServices();
+  }, [areaSlug]);
+
+  // Build time windows dynamically - dameskapper has longer slots
+  const timeWindows: TimeWindow[] = useMemo(() => {
+    const tomorrow = getAmsterdamDate(1);
+    const dayAfter = getAmsterdamDate(2);
+    return [
+      { key: "tomorrow-1000", label: "Morgen 10:00–12:00", dateStr: tomorrow, startTime: "10:00", endTime: "12:00" },
+      { key: "tomorrow-1400", label: "Morgen 14:00–16:00", dateStr: tomorrow, startTime: "14:00", endTime: "16:00" },
+      { key: "dayafter-1000", label: "Overmorgen 10:00–12:00", dateStr: dayAfter, startTime: "10:00", endTime: "12:00" },
+      { key: "dayafter-1400", label: "Overmorgen 14:00–16:00", dateStr: dayAfter, startTime: "14:00", endTime: "16:00" },
+    ];
+  }, []);
+
+  const selectedService = services.find((s) => s.key === serviceKey);
+  const selectedWindow = timeWindows.find((tw) => tw.key === timeWindowKey);
 
   const isFormValid =
-    intentKey &&
-    datePreference &&
+    serviceKey &&
+    timeWindowKey !== null &&
     customerName.trim() &&
     phone.trim() &&
     email.trim() &&
@@ -60,10 +151,13 @@ export default function DameskapperBooking({
     e.preventDefault();
     setError(false);
 
-    if (!isFormValid || !selectedIntent) {
+    if (!isFormValid || !selectedService || !selectedWindow) {
       setError(true);
       return;
     }
+
+    const windowStart = toAmsterdamISO(selectedWindow.dateStr, selectedWindow.startTime);
+    const windowEnd = toAmsterdamISO(selectedWindow.dateStr, selectedWindow.endTime);
 
     setLoading(true);
 
@@ -72,11 +166,14 @@ export default function DameskapperBooking({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          serviceKey: selectedIntent.key,
-          serviceName: selectedIntent.name,
-          fromPriceCents: selectedIntent.fromPriceCents,
-          datePreference,
-          notes: notes.trim(),
+          serviceKey: selectedService.key,
+          serviceName: selectedService.name,
+          durationMin: selectedService.durationMin,
+          priceCents: selectedService.priceCents,
+          payoutCents: selectedService.payoutCents,
+          timeWindowLabel: selectedWindow.label,
+          windowStart,
+          windowEnd,
           address: address.trim(),
           postcode: postcode.trim(),
           place: areaLabel,
@@ -85,7 +182,7 @@ export default function DameskapperBooking({
           email: email.trim(),
           area: getAreaDbKey(areaSlug),
           serviceType: "dameskapper",
-          bookingModel: "flexible",
+          vertical: "dameskapper",
         }),
       });
 
@@ -96,12 +193,12 @@ export default function DameskapperBooking({
       }
 
       const bookingData = await bookingRes.json();
-      const { bookingId } = bookingData;
 
-      const checkoutRes = await fetch("/api/stripe/checkout", {
+      // Create Stripe checkout session and redirect
+      const checkoutRes = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId }),
+        body: JSON.stringify({ bookingId: bookingData.bookingId }),
       });
 
       if (!checkoutRes.ok) {
@@ -111,17 +208,48 @@ export default function DameskapperBooking({
       }
 
       const checkoutData = await checkoutRes.json();
-
-      if (checkoutData.url) {
-        window.location.href = checkoutData.url;
-      } else {
-        setError(true);
-        setLoading(false);
-      }
+      window.location.href = checkoutData.checkoutUrl;
     } catch {
       setError(true);
       setLoading(false);
     }
+  }
+
+  if (servicesLoading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-primary-50 via-white to-white flex items-center justify-center">
+        <div className="text-gray-500">Laden...</div>
+      </main>
+    );
+  }
+
+  if (servicesError || services.length === 0) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-primary-50 via-white to-white">
+        <header className="px-4 py-4 sm:px-6 border-b border-gray-100">
+          <nav className="max-w-lg mx-auto flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                <ScissorsIcon className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold text-xl text-gray-900">{COPY.booking.headerLabel}</span>
+            </Link>
+            <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
+              {COPY.actions.cancel}
+            </Link>
+          </nav>
+        </header>
+        <div className="max-w-lg mx-auto px-4 py-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Dameskapper nog niet beschikbaar</h1>
+          <p className="text-gray-600">
+            Dameskappersdiensten zijn nog niet beschikbaar in {areaLabel}. Probeer het later opnieuw.
+          </p>
+          <Link href="/" className="inline-block mt-6 text-primary-600 hover:text-primary-700 font-medium">
+            Terug naar home
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -133,10 +261,10 @@ export default function DameskapperBooking({
             <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
               <ScissorsIcon className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-xl text-gray-900">BoekDichtbij</span>
+            <span className="font-bold text-xl text-gray-900">{COPY.booking.headerLabel}</span>
           </Link>
           <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
-            Annuleren
+            {COPY.actions.cancel}
           </Link>
         </nav>
       </header>
@@ -144,15 +272,11 @@ export default function DameskapperBooking({
       <div className="max-w-lg mx-auto px-4 py-8">
         {/* Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-700 px-3 py-1.5 rounded-full text-sm font-medium mb-4">
-            <LocationIcon className="w-4 h-4" />
-            {areaLabel}
-          </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Dameskapper aan huis
+            {COPY.booking.h1Dameskapper} in {areaLabel}
           </h1>
           <p className="text-gray-600 mt-2">
-            Professionele haarverzorging bij jou thuis
+            {COPY.booking.sublineDameskapper}
           </p>
         </div>
 
@@ -164,15 +288,15 @@ export default function DameskapperBooking({
                 1
               </div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Kies een dienst
+                {COPY.booking.chooseService}
               </h2>
             </div>
             <div className="space-y-3">
-              {SERVICE_INTENTS.map((s) => (
+              {services.map((s) => (
                 <label
                   key={s.key}
                   className={`flex items-center justify-between p-4 bg-white border-2 rounded-xl cursor-pointer transition-all ${
-                    intentKey === s.key
+                    serviceKey === s.key
                       ? "border-primary-500 bg-primary-50"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
@@ -180,84 +304,112 @@ export default function DameskapperBooking({
                   <div className="flex items-center gap-3">
                     <input
                       type="radio"
-                      name="intent"
+                      name="service"
                       value={s.key}
-                      checked={intentKey === s.key}
-                      onChange={(e) => setIntentKey(e.target.value)}
+                      checked={serviceKey === s.key}
+                      onChange={(e) => setServiceKey(e.target.value)}
                       className="sr-only"
                     />
                     <div
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        intentKey === s.key ? "border-primary-500" : "border-gray-300"
+                        serviceKey === s.key ? "border-primary-500" : "border-gray-300"
                       }`}
                     >
-                      {intentKey === s.key && (
+                      {serviceKey === s.key && (
                         <div className="w-2.5 h-2.5 rounded-full bg-primary-500" />
                       )}
                     </div>
-                    <span className="font-medium text-gray-900">{s.name}</span>
+                    <div>
+                      <span className="font-medium text-gray-900">{s.name}</span>
+                      <span className="text-gray-500 text-sm ml-2">
+                        ±{s.durationMin} min
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-gray-500 text-sm">
-                    Vanaf €{(s.fromPriceCents / 100).toFixed(0)}
+                  <span className="font-bold text-primary-600">
+                    €{(s.priceCents / 100).toFixed(0)}
                   </span>
                 </label>
               ))}
             </div>
           </section>
 
-          {/* Step 2: Date */}
+          {/* Step 2: Time */}
           <section>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-primary-500 text-white text-sm font-bold rounded-full flex items-center justify-center">
                 2
               </div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Kies een datum
+                {COPY.booking.chooseTime}
               </h2>
             </div>
-            <div className="space-y-3">
-              <input
-                type="date"
-                value={datePreference}
-                onChange={(e) => setDatePreference(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
-                className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-primary-500 transition-colors"
-              />
-              <p className="text-sm text-gray-500">
-                De kapper neemt contact op om een exacte tijd af te spreken.
-              </p>
+            <p className="text-sm text-gray-500 mb-3">{COPY.booking.timeNote}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {timeWindows.map((tw) => (
+                <label
+                  key={tw.key}
+                  className={`flex items-center justify-center p-4 bg-white border-2 rounded-xl cursor-pointer transition-all text-center ${
+                    timeWindowKey === tw.key
+                      ? "border-primary-500 bg-primary-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="timewindow"
+                    value={tw.key}
+                    checked={timeWindowKey === tw.key}
+                    onChange={() => setTimeWindowKey(tw.key)}
+                    className="sr-only"
+                  />
+                  <span className={`font-medium ${timeWindowKey === tw.key ? "text-primary-700" : "text-gray-900"}`}>
+                    {tw.label}
+                  </span>
+                </label>
+              ))}
             </div>
           </section>
 
-          {/* Step 3: Notes */}
+          {/* Step 3: Location */}
           <section>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-primary-500 text-white text-sm font-bold rounded-full flex items-center justify-center">
                 3
               </div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Aanvullende wensen
+                {COPY.booking.location}
               </h2>
             </div>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Bijv. haarlengte, kleurwensen, allergieën... (optioneel)"
-              rows={3}
-              className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary-500 transition-colors resize-none"
-            />
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Adres"
+                className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary-500 transition-colors"
+              />
+              <input
+                type="text"
+                value={postcode}
+                onChange={(e) => setPostcode(e.target.value)}
+                placeholder="Postcode"
+                className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary-500 transition-colors"
+              />
+            </div>
           </section>
 
-          {/* Step 4: Contact */}
+          {/* Step 4: Details */}
           <section>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-primary-500 text-white text-sm font-bold rounded-full flex items-center justify-center">
                 4
               </div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Jouw gegevens
+                {COPY.booking.details}
               </h2>
             </div>
+            <p className="text-sm text-gray-500 mb-3">{COPY.booking.detailsNote}</p>
             <div className="space-y-3">
               <input
                 type="text"
@@ -280,30 +432,17 @@ export default function DameskapperBooking({
                 placeholder="E-mail"
                 className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary-500 transition-colors"
               />
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Adres"
-                className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary-500 transition-colors"
-              />
-              <input
-                type="text"
-                value={postcode}
-                onChange={(e) => setPostcode(e.target.value)}
-                placeholder="Postcode"
-                className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary-500 transition-colors"
-              />
             </div>
           </section>
 
           {/* Summary and CTA */}
           <section className="bg-white border-2 border-gray-200 rounded-2xl p-6">
-            {selectedIntent && (
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{COPY.booking.summary}</h3>
+            {selectedService && (
               <div className="flex justify-between items-center mb-6">
-                <span className="text-gray-600">Indicatie</span>
+                <span className="text-gray-600">{selectedService.name}</span>
                 <span className="text-2xl font-bold text-primary-600">
-                  Vanaf €{(selectedIntent.fromPriceCents / 100).toFixed(0)}
+                  €{(selectedService.priceCents / 100).toFixed(0)}
                 </span>
               </div>
             )}
@@ -311,11 +450,10 @@ export default function DameskapperBooking({
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl mb-4 flex items-center gap-2 text-sm">
                 <ErrorIcon className="w-4 h-4 shrink-0" />
-                Vul alle velden in en probeer opnieuw.
+                {COPY.booking.genericError}
               </div>
             )}
 
-            {/* LOCKED CTA */}
             <Button
               type="submit"
               disabled={loading || !isFormValid}
@@ -323,12 +461,15 @@ export default function DameskapperBooking({
               size="lg"
               fullWidth
             >
-              Aanvraag indienen
+              {COPY.booking.cta}
             </Button>
 
-            {/* LOCKED helper text */}
             <p className="text-center text-sm text-gray-500 mt-4">
-              De kapper bevestigt prijs en tijd na acceptatie.
+              {COPY.booking.ctaSubtext}
+            </p>
+
+            <p className="text-center text-xs text-gray-400 mt-2">
+              {COPY.booking.guarantee}
             </p>
           </section>
         </form>
@@ -341,15 +482,6 @@ function ScissorsIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
-    </svg>
-  );
-}
-
-function LocationIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   );
 }

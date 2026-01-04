@@ -39,56 +39,114 @@ export const CITIES: Record<string, CityConfig> = {
 
 // ==================================================
 // AREAS
+// Key = URL slug (what appears in the URL path)
 // ==================================================
 export const AREAS: Record<string, AreaConfig> = {
   ridderkerk: {
     city: "rotterdam",
     label: "Ridderkerk",
     enabled: true,
-    neighbors: ["barendrecht", "rotterdam-zuid"],
+    neighbors: ["barendrecht", "zuid"],
     rolloutStatus: "live",
   },
   barendrecht: {
     city: "rotterdam",
     label: "Barendrecht",
     enabled: true,
-    neighbors: ["ridderkerk", "rotterdam-zuid"],
-    rolloutStatus: "pilot",
+    neighbors: ["ridderkerk", "zuid"],
+    rolloutStatus: "live",
   },
-  "rotterdam-zuid": {
+  zuid: {
     city: "rotterdam",
     label: "Rotterdam-Zuid",
     enabled: true,
     neighbors: ["ridderkerk", "barendrecht", "schiedam"],
-    rolloutStatus: "pilot",
+    rolloutStatus: "live",
   },
   schiedam: {
     city: "rotterdam",
     label: "Schiedam",
     enabled: true,
-    neighbors: ["rotterdam-zuid", "vlaardingen"],
-    rolloutStatus: "hidden",
+    neighbors: ["zuid", "vlaardingen"],
+    rolloutStatus: "live",
   },
   vlaardingen: {
     city: "rotterdam",
     label: "Vlaardingen",
     enabled: true,
     neighbors: ["schiedam"],
-    rolloutStatus: "hidden",
+    rolloutStatus: "live",
   },
-  "rotterdam-west": {
+  west: {
     city: "rotterdam",
     label: "Rotterdam-West",
     enabled: true,
-    neighbors: ["schiedam", "rotterdam-centrum"],
-    rolloutStatus: "pilot",
+    neighbors: ["schiedam", "centrum"],
+    rolloutStatus: "live",
   },
-  "capelle-aan-den-ijssel": {
+  capelle: {
     city: "rotterdam",
     label: "Capelle aan den IJssel",
     enabled: true,
-    neighbors: ["rotterdam-zuid"],
-    rolloutStatus: "hidden",
+    neighbors: ["zuid", "krimpen"],
+    rolloutStatus: "live",
+  },
+  // New areas within 15km radius
+  maassluis: {
+    city: "rotterdam",
+    label: "Maassluis",
+    enabled: true,
+    neighbors: ["vlaardingen", "hoekvanholland"],
+    rolloutStatus: "live",
+  },
+  spijkenisse: {
+    city: "rotterdam",
+    label: "Spijkenisse",
+    enabled: true,
+    neighbors: ["hoogvliet", "zuid"],
+    rolloutStatus: "live",
+  },
+  hoogvliet: {
+    city: "rotterdam",
+    label: "Hoogvliet",
+    enabled: true,
+    neighbors: ["spijkenisse", "zuid"],
+    rolloutStatus: "live",
+  },
+  ijsselmonde: {
+    city: "rotterdam",
+    label: "IJsselmonde",
+    enabled: true,
+    neighbors: ["zuid", "barendrecht", "ridderkerk"],
+    rolloutStatus: "live",
+  },
+  krimpen: {
+    city: "rotterdam",
+    label: "Krimpen aan den IJssel",
+    enabled: true,
+    neighbors: ["capelle", "ridderkerk"],
+    rolloutStatus: "live",
+  },
+  berkel: {
+    city: "rotterdam",
+    label: "Berkel en Rodenrijs",
+    enabled: true,
+    neighbors: ["bergschenhoek", "schiedam"],
+    rolloutStatus: "live",
+  },
+  bergschenhoek: {
+    city: "rotterdam",
+    label: "Bergschenhoek",
+    enabled: true,
+    neighbors: ["berkel", "bleiswijk"],
+    rolloutStatus: "live",
+  },
+  bleiswijk: {
+    city: "rotterdam",
+    label: "Bleiswijk",
+    enabled: true,
+    neighbors: ["bergschenhoek", "capelle"],
+    rolloutStatus: "live",
   },
 };
 

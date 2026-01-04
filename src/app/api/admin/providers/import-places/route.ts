@@ -3,7 +3,6 @@ import { PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb, TABLE_NAME } from "@/lib/ddb";
 import { sendWhatsApp } from "@/lib/twilio";
 import { COPY } from "@/lib/copy";
-import { ulid } from "ulid";
 
 const OPS_TOKEN = process.env.OPS_TOKEN;
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
@@ -88,14 +87,14 @@ export async function POST(request: Request) {
   }
 
   // Parse input
-  let body: { query: string; area: string; limit?: number };
+  let body: { query: string; area: string; vertical?: string; limit?: number };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const { query, area, limit = 10 } = body;
+  const { query, area, vertical = "herenkapper", limit = 10 } = body;
 
   if (!query || !area) {
     return NextResponse.json(
@@ -213,8 +212,10 @@ export async function POST(request: Request) {
                 placeId,
                 name,
                 area: normalizedArea,
+                vertical,
                 whatsappPhone: normalizedPhone,
                 isActive: false,
+                hasWebsite: !!website,
                 reliabilityScore: 50,
                 createdAt: now,
                 updatedAt: now,
