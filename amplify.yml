@@ -10,6 +10,9 @@ frontend:
         - npm ci --legacy-peer-deps
     build:
       commands:
+        # Write environment variables to .env.production for SSR runtime
+        - env | grep -e APP_AWS_ -e DDB_TABLE_NAME -e STRIPE_ -e TWILIO_ -e OPS_TOKEN -e NEXTAUTH_SECRET -e GOOGLE_ -e APPLE_ >> .env.production
+        - env | grep -e NEXT_PUBLIC_ >> .env.production
         - npm run build
   artifacts:
     baseDirectory: .next
