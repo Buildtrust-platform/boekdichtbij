@@ -37,7 +37,13 @@ export async function GET(request: Request) {
       })),
     });
   } catch (err) {
-    console.error("[api/services] Failed to fetch services:", err);
-    return NextResponse.json({ error: "fetch_failed" }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    console.error("[api/services] Failed to fetch services:", errorMessage, err);
+    return NextResponse.json({
+      error: "fetch_failed",
+      details: errorMessage,
+      area,
+      vertical,
+    }, { status: 500 });
   }
 }
